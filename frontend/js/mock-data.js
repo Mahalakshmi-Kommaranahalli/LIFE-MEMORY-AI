@@ -1,12 +1,30 @@
 /**
- * LIFE MEMORY AI — Seed Mock Data Store
- * Provides rich, realistic data for CSE student / AI Engineer persona.
- * Automatically initializes in localStorage if not already present.
+ * LIFE MEMORY AI — Multi-User Isolated Data & Seed Mock Engine
+ * Maintains strict per-account isolation so each user has their own
+ * dedicated memory bank, conversations, knowledge graph, and timeline.
  */
 
-const SEED_DATA_KEY = 'lifememory_data_v1';
+const ACCOUNTS_REGISTRY_KEY = 'lifememory_accounts_v2';
+const DEMO_EMAIL = 'mahalakshmi@example.com';
 
-const INITIAL_MEMORIES = [
+const DEMO_ACCOUNT = {
+  id: 'usr_demo',
+  name: 'Mahalakshmi K',
+  email: DEMO_EMAIL,
+  password: 'demo123456',
+  role: 'CSE Student & AI Engineer',
+  avatarText: 'MK',
+  createdAt: '2026-09-01T00:00:00Z',
+  preferences: {
+    autoExtract: true,
+    confidenceThreshold: 0.75,
+    retrievalTopK: 5,
+    conflictDetection: true,
+    theme: 'light'
+  }
+};
+
+const DEMO_INITIAL_MEMORIES = [
   {
     id: 'mem_1',
     category: 'career',
@@ -139,7 +157,7 @@ const INITIAL_MEMORIES = [
   }
 ];
 
-const INITIAL_CONVERSATIONS = [
+const DEMO_INITIAL_CONVERSATIONS = [
   {
     id: 'conv_1',
     title: 'Career Planning & AI Engineering Roadmap',
@@ -154,7 +172,7 @@ const INITIAL_CONVERSATIONS = [
       {
         id: 'msg_2',
         role: 'assistant',
-        text: 'Hello! It is fantastic to connect with you. As a CSE senior aiming for a career in AI Engineering, your computer science fundamentals give you a massive advantage. I have noted your ambition and educational stage in your memory bank! To reach the top tier of AI engineering, I recommend focusing on modern LLM orchestration, Retrieval-Augmented Generation (RAG), vector embeddings, and deploying scalable FastAPI services.',
+        text: 'Hello Mahalakshmi! It is fantastic to connect with you. As a CSE senior aiming for a career in AI Engineering, your computer science fundamentals give you a massive advantage. I have noted your ambition and educational stage in your memory bank! To reach the top tier of AI engineering, I recommend focusing on modern LLM orchestration, Retrieval-Augmented Generation (RAG), vector embeddings, and deploying scalable FastAPI services.',
         timestamp: '2026-11-23T14:18:05Z',
         extractedMemories: ['mem_1', 'mem_2'],
         groundedMemories: []
@@ -198,7 +216,7 @@ const INITIAL_CONVERSATIONS = [
   }
 ];
 
-const INITIAL_RELATIONSHIPS = [
+const DEMO_INITIAL_RELATIONSHIPS = [
   { source: 'mem_2', target: 'mem_3', type: 'enabled_skill', label: 'Learned at College' },
   { source: 'mem_3', target: 'mem_4', type: 'applied_in', label: 'Used to Build' },
   { source: 'mem_4', target: 'mem_7', type: 'led_to', label: 'Won Hackathon' },
@@ -208,7 +226,7 @@ const INITIAL_RELATIONSHIPS = [
   { source: 'mem_10', target: 'mem_1', type: 'networked_for', label: 'Industry Connections' }
 ];
 
-const INITIAL_DOCUMENTS = [
+const DEMO_INITIAL_DOCUMENTS = [
   {
     id: 'doc_1',
     filename: 'AI_Engineering_Curriculum_2026.pdf',
@@ -231,42 +249,148 @@ const INITIAL_DOCUMENTS = [
   }
 ];
 
-// Initialize LocalStorage Data Store
-function initDataStore() {
-  const existing = localStorage.getItem(SEED_DATA_KEY);
-  if (!existing) {
-    const data = {
-      user: {
-        id: 'usr_default',
-        name: 'Mahalakshmi K',
-        email: 'mahalakshmi@example.com',
-        avatarText: 'MK',
-        role: 'CSE Student & AI Engineer',
-        preferences: {
-          autoExtract: true,
-          confidenceThreshold: 0.75,
-          retrievalTopK: 5,
-          conflictDetection: true,
-          theme: 'light'
-        }
-      },
-      memories: INITIAL_MEMORIES,
-      conversations: INITIAL_CONVERSATIONS,
-      relationships: INITIAL_RELATIONSHIPS,
-      documents: INITIAL_DOCUMENTS
-    };
-    localStorage.setItem(SEED_DATA_KEY, JSON.stringify(data));
-    return data;
+// --- Registered Accounts Management ---
+function getRegisteredAccounts() {
+  const raw = localStorage.getItem(ACCOUNTS_REGISTRY_KEY);
+  let accounts = [];
+  if (raw) {
+    try { accounts = JSON.parse(raw); } catch (e) { accounts = []; }
   }
-  return JSON.parse(existing);
+  // Guarantee demo account is in the registry
+  if (!accounts.some(a => (a.email || '').toLowerCase() === DEMO_EMAIL)) {
+    accounts.unshift(DEMO_ACCOUNT);
+    localStorage.setItem(ACCOUNTS_REGISTRY_KEY, JSON.stringify(accounts));
+  }
+  return accounts;
 }
 
-function getDataStore() {
-  const raw = localStorage.getItem(SEED_DATA_KEY);
-  return raw ? JSON.parse(raw) : initDataStore();
+function saveRegisteredAccounts(accounts) {
+  localStorage.setItem(ACCOUNTS_REGISTRY_KEY, JSON.stringify(accounts));
 }
 
-function saveDataStore(data) {
-  localStorage.setItem(SEED_DATA_KEY, JSON.stringify(data));
+function getUserStoreKey(email) {
+  const safeEmail = (email || 'anonymous').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  return `lifememory_userstore_${safeEmail}`;
 }
 
+function getCurrentUserEmail() {
+  const userRaw = localStorage.getItem('lifememory_user');
+  if (userRaw) {
+    try {
+      const u = JSON.parse(userRaw);
+      if (u && u.email) return u.email.trim().toLowerCase();
+    } catch (e) {}
+  }
+  const currentEmail = localStorage.getItem('lifememory_current_email');
+  if (currentEmail) return currentEmail.trim().toLowerCase();
+  return null;
+}
+
+function createFreshUserStore(user) {
+  const firstName = (user.name || 'Friend').trim().split(' ')[0];
+  return {
+    user: {
+      id: user.id || ('usr_' + Date.now()),
+      name: user.name || 'New Member',
+      email: (user.email || '').trim().toLowerCase(),
+      avatarText: user.avatarText || 'U',
+      role: user.role || 'Personal Account',
+      preferences: user.preferences || {
+        autoExtract: true,
+        confidenceThreshold: 0.75,
+        retrievalTopK: 5,
+        conflictDetection: true,
+        theme: 'light'
+      }
+    },
+    memories: [],
+    conversations: [
+      {
+        id: 'conv_welcome_' + Date.now(),
+        title: 'Getting to Know You',
+        updatedAt: new Date().toISOString(),
+        messages: [
+          {
+            id: 'msg_welcome_' + Date.now(),
+            role: 'assistant',
+            text: `Hi ${firstName}! 👋 Welcome to Life Memory AI. I'm your personal AI companion.\n\nI'm designed to chat and interact with you like a real human friend, while remembering the details of your life that matter most to you.\n\nFeel free to talk to me about anything: where you live, what you do, your goals, hobbies, thoughts, or what's happening in your day. As we chat, I'll naturally remember what you share — and if anything in your life changes later on, just let me know and I'll keep track of how things evolved!\n\nHow are you feeling today?`,
+            timestamp: new Date().toISOString(),
+            extractedMemories: [],
+            groundedMemories: []
+          }
+        ]
+      }
+    ],
+    relationships: [],
+    documents: []
+  };
+}
+
+function initDataStore(targetEmail) {
+  const email = (targetEmail || getCurrentUserEmail() || DEMO_EMAIL).toLowerCase();
+  const key = getUserStoreKey(email);
+
+  if (email === DEMO_EMAIL) {
+    const demoData = {
+      user: DEMO_ACCOUNT,
+      memories: DEMO_INITIAL_MEMORIES,
+      conversations: DEMO_INITIAL_CONVERSATIONS,
+      relationships: DEMO_INITIAL_RELATIONSHIPS,
+      documents: DEMO_INITIAL_DOCUMENTS
+    };
+    localStorage.setItem(key, JSON.stringify(demoData));
+    return demoData;
+  } else {
+    const accounts = getRegisteredAccounts();
+    const acc = accounts.find(a => a.email.toLowerCase() === email) || {
+      id: 'usr_' + Date.now(),
+      name: 'User',
+      email: email,
+      avatarText: 'U',
+      role: 'Personal Account'
+    };
+    const fresh = createFreshUserStore(acc);
+    localStorage.setItem(key, JSON.stringify(fresh));
+    return fresh;
+  }
+}
+
+function getDataStore(targetEmail) {
+  const email = (targetEmail || getCurrentUserEmail() || DEMO_EMAIL).toLowerCase();
+  const key = getUserStoreKey(email);
+  const raw = localStorage.getItem(key);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.memories)) {
+        return parsed;
+      }
+    } catch (e) {}
+  }
+  return initDataStore(email);
+}
+
+function saveDataStore(data, targetEmail) {
+  const email = (targetEmail || (data.user && data.user.email) || getCurrentUserEmail() || DEMO_EMAIL).toLowerCase();
+  const key = getUserStoreKey(email);
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function resetUserDataStore(email) {
+  const target = (email || getCurrentUserEmail() || DEMO_EMAIL).toLowerCase();
+  const key = getUserStoreKey(target);
+  localStorage.removeItem(key);
+  return initDataStore(target);
+}
+
+// Ensure accounts list is ready on script load
+getRegisteredAccounts();
+
+if (typeof window !== 'undefined') {
+  window.getDataStore = getDataStore;
+  window.saveDataStore = saveDataStore;
+  window.resetUserDataStore = resetUserDataStore;
+  window.getRegisteredAccounts = getRegisteredAccounts;
+  window.saveRegisteredAccounts = saveRegisteredAccounts;
+  window.createFreshUserStore = createFreshUserStore;
+}

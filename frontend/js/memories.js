@@ -82,6 +82,12 @@ function renderMemoriesGrid() {
         ${escapeHtml(mem.content)}
       </div>
 
+      ${mem.previousValue ? `
+        <div style="margin: 6px 0; padding: 6px 10px; background: rgba(245, 158, 11, 0.08); border-left: 3px solid #F59E0B; border-radius: 4px; font-size: 0.78rem; color: #92400E;">
+          <strong>↻ Evolved from:</strong> ${escapeHtml(mem.previousValue)}
+        </div>
+      ` : ''}
+
       <!-- Tags -->
       ${mem.tags && mem.tags.length > 0 ? `
         <div style="display: flex; flex-wrap: wrap; gap: 4px;">

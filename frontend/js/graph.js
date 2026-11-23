@@ -38,6 +38,20 @@ function renderNetwork() {
   const container = document.getElementById('graph-network-container');
   if (!container) return;
 
+  if (!graphData.nodes || graphData.nodes.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="margin: auto; text-align: center; padding: 60px 20px;">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">🕸️</div>
+        <div class="empty-state-title" style="font-size: 1.15rem; font-weight: 700;">No Connected Memories Yet</div>
+        <div class="empty-state-desc" style="font-size: 0.88rem; color: var(--text-secondary); max-width: 440px; margin: 8px auto 18px;">
+          As you chat with your assistant about your career, skills, and goals, your interconnected knowledge graph will automatically grow here.
+        </div>
+        <a href="chat.html" class="btn btn-primary btn-sm">Start a Conversation</a>
+      </div>
+    `;
+    return;
+  }
+
   if (typeof vis !== 'undefined') {
     // Format Vis nodes with light color scheme
     const nodesArray = graphData.nodes.map(n => {

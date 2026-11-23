@@ -80,6 +80,10 @@
         </div>
 
         <div class="header-actions">
+          <button class="btn btn-outline btn-sm" id="btn-ai-model-toggle" title="AI Engine Settings" style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.9rem;">✨</span>
+            <span id="ai-model-badge">AI Engine</span>
+          </button>
           <button class="btn btn-outline btn-sm" id="btn-toggle-drawer" title="Toggle Memory Drawer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
             Memory Drawer
@@ -156,6 +160,43 @@
             <!-- Populated dynamically based on current response -->
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Engine Modal -->
+  <div class="modal-backdrop" id="ai-engine-modal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>✨</span>
+          <span>AI Intelligence Engine</span>
+        </h3>
+        <button class="modal-close" onclick="closeAiEngineModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+          Life Memory AI works out-of-the-box with its built-in Cognitive Engine. You can also connect <strong>Google Gemini AI</strong> (free) for full real-time human chat!
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" style="display: flex; justify-content: space-between;">
+            <span>Gemini API Key</span>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 0.78rem; color: var(--primary); font-weight: 600;">Get Free Key ↗</a>
+          </label>
+          <input type="password" id="input-gemini-key" class="form-input" placeholder="AIzaSy...">
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+            100% free from Google AI Studio. Stored privately in your local browser storage.
+          </div>
+        </div>
+
+        <div id="ai-status-note" style="padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--text-secondary); margin-top: 14px;">
+          Current mode: <strong id="ai-status-text">Dynamic Cognitive Engine (Built-In)</strong>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 14px 24px; display: flex; justify-content: space-between;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="clearGeminiKey()">Use Built-In Engine</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="saveGeminiKey()">Save & Connect</button>
       </div>
     </div>
   </div>
