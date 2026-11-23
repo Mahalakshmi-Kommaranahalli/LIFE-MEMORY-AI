@@ -106,17 +106,17 @@
 
               <div class="form-group">
                 <label class="form-label">Full Name</label>
-                <input type="text" id="prof-name" class="form-input" value="Mahalakshmi K" required>
+                <input type="text" id="prof-name" class="form-input" placeholder="Your name" required>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Email Address</label>
-                <input type="email" id="prof-email" class="form-input" value="mahalakshmi@example.com" required>
+                <input type="email" id="prof-email" class="form-input" placeholder="your@email.com" required>
               </div>
 
               <div class="form-group">
-                <label class="form-label">Role & Academic Background</label>
-                <input type="text" id="prof-role" class="form-input" value="CSE Student & AI Engineer">
+                <label class="form-label">Role & Background</label>
+                <input type="text" id="prof-role" class="form-input" placeholder="e.g. Software Engineer / Student">
               </div>
 
               <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Profile Changes</button>
@@ -164,6 +164,17 @@
                   <option value="8">8 Most Relevant</option>
                   <option value="12">12 Most Relevant</option>
                 </select>
+              </div>
+
+              <div style="padding: 16px 0; border-top: 1px solid var(--border-subtle);">
+                <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>Google Gemini API Key (Live Human AI)</span>
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 0.78rem; color: var(--primary); font-weight: 600;">Get Free Key ↗</a>
+                </label>
+                <input type="password" id="pref-gemini-key" class="form-input" placeholder="AIzaSy...">
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                  Optional: Connect free Gemini 2.0 Flash for 100% real-time human chat, or leave blank to use the built-in Cognitive Engine.
+                </div>
               </div>
 
               <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Memory Engine Rules</button>

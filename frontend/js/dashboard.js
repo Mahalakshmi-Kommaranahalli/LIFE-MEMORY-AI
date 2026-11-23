@@ -42,7 +42,15 @@ function renderRecentMemories(memories) {
   if (!container) return;
 
   if (!memories || memories.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="padding: 20px;"><div class="empty-state-desc">No memories saved yet. Start chatting or add one manually!</div></div>`;
+    container.innerHTML = `
+      <div class="empty-state" style="padding: 24px; text-align: center;">
+        <div style="font-size: 1.5rem; margin-bottom: 8px;">🌱</div>
+        <div class="empty-state-title" style="font-size: 0.95rem; font-weight: 700;">No memories recorded yet</div>
+        <div class="empty-state-desc" style="font-size: 0.84rem; color: var(--text-muted); margin-top: 4px;">
+          Start chatting in the Assistant or click "+ Add Memory" to build your memory bank!
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -55,9 +63,14 @@ function renderRecentMemories(memories) {
       <div style="font-size: 0.88rem; color: var(--text-primary); font-weight: 500; line-height: 1.45;">
         ${escapeHtml(mem.content)}
       </div>
+      ${mem.previousValue ? `
+        <div style="padding: 4px 8px; background: rgba(245, 158, 11, 0.08); border-left: 2px solid #F59E0B; border-radius: 4px; font-size: 0.74rem; color: #92400E;">
+          <strong>Evolved from:</strong> ${escapeHtml(mem.previousValue)}
+        </div>
+      ` : ''}
       <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
         <span>Source: ${escapeHtml(mem.source || 'Conversation')}</span>
-        <span style="font-weight: 600; color: var(--primary);">${Math.round(mem.confidence * 100)}% verified</span>
+        <span style="font-weight: 600; color: var(--primary);">${Math.round((mem.confidence || 0.95) * 100)}% verified</span>
       </div>
     </div>
   `).join('');
@@ -68,7 +81,6 @@ function renderCharts(stats) {
   const catCanvas = document.getElementById('categoryDoughnutChart');
 
   if (typeof Chart === 'undefined') {
-    // If Chart.js CDN didn't load, render crisp SVG fallback
     renderFallbackCharts(weeklyCanvas, catCanvas, stats);
     return;
   }
@@ -88,7 +100,7 @@ function renderCharts(stats) {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         datasets: [{
           label: 'Memories Processed',
-          data: stats.weeklyActivity || [4, 7, 3, 9, 6, 12, 8],
+          data: stats.weeklyActivity || [0, 0, 0, 0, 0, 0, 0],
           borderColor: '#6366F1',
           borderWidth: 2.5,
           pointBackgroundColor: '#FFFFFF',
@@ -134,13 +146,14 @@ function renderCharts(stats) {
     const ctx = catCanvas.getContext('2d');
     if (categoryChart) categoryChart.destroy();
 
-    const catLabels = Object.keys(stats.categoryDistribution || { career: 2, education: 2, goals: 2, skills: 2, projects: 2 });
-    const catCounts = Object.values(stats.categoryDistribution || { career: 2, education: 2, goals: 2, skills: 2, projects: 2 });
+    const hasCategories = stats.categoryDistribution && Object.keys(stats.categoryDistribution).length > 0;
+    const catLabels = hasCategories ? Object.keys(stats.categoryDistribution) : ['No Memories Yet'];
+    const catCounts = hasCategories ? Object.values(stats.categoryDistribution) : [1];
 
-    const colorPalette = [
+    const colorPalette = hasCategories ? [
       '#6366F1', '#8B5CF6', '#EC4899', '#0EA5E9',
       '#10B981', '#F59E0B', '#E11D48', '#0D9488', '#4F46E5', '#CA8A04'
-    ];
+    ] : ['#E2E8F0'];
 
     categoryChart = new Chart(ctx, {
       type: 'doughnut',
@@ -179,10 +192,10 @@ function renderFallbackCharts(weeklyCanvas, catCanvas, stats) {
   if (weeklyCanvas) {
     weeklyCanvas.parentElement.innerHTML = `
       <div style="height: 100%; display: flex; align-items: flex-end; gap: 14px; padding: 20px 10px; justify-content: space-around;">
-        ${(stats.weeklyActivity || [4, 7, 3, 9, 6, 12, 8]).map((val, i) => `
+        ${(stats.weeklyActivity || [0, 0, 0, 0, 0, 0, 0]).map((val, i) => `
           <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;">
             <div style="font-size: 0.72rem; font-weight: 700; color: var(--primary);">${val}</div>
-            <div style="width: 100%; max-width: 28px; height: ${val * 16}px; background: var(--gradient-brand); border-radius: 4px;"></div>
+            <div style="width: 100%; max-width: 28px; height: ${Math.max(val * 16, 4)}px; background: var(--gradient-brand); border-radius: 4px;"></div>
             <div style="font-size: 0.72rem; color: var(--text-muted);">${['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}</div>
           </div>
         `).join('')}
@@ -191,7 +204,6 @@ function renderFallbackCharts(weeklyCanvas, catCanvas, stats) {
   }
 }
 
-// Modal handling
 function openAddMemoryModal() {
   document.getElementById('add-memory-modal').classList.add('active');
 }
@@ -238,4 +250,3 @@ function formatDate(iso) {
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
-

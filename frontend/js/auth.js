@@ -8,13 +8,13 @@ const AuthGuard = {
     const user = ApiService.getCurrentUser();
 
     if (!token && !isPublicPage) {
-      // In development / demo mode, auto-initialize if not set, or redirect
-      // To provide smooth experience out of the box:
-      localStorage.setItem('lifememory_token', 'mock_jwt_token_active');
+      // If not authenticated on a protected page, redirect to login
+      window.location.href = 'login.html';
+      return;
     }
 
     if (token && (window.location.pathname.endsWith('login.html') || window.location.pathname.endsWith('register.html'))) {
-      // already logged in, redirect to dashboard
+      // If already logged in on auth page, redirect to dashboard
       // window.location.href = 'dashboard.html';
     }
 
@@ -25,17 +25,17 @@ const AuthGuard = {
     if (!user) return;
     const avatarEls = document.querySelectorAll('.user-avatar');
     avatarEls.forEach(el => {
-      el.textContent = user.avatarText || 'MK';
+      el.textContent = user.avatarText || 'U';
     });
 
     const nameEls = document.querySelectorAll('.user-name');
     nameEls.forEach(el => {
-      el.textContent = user.name || 'Mahalakshmi K';
+      el.textContent = user.name || 'Member';
     });
 
     const roleEls = document.querySelectorAll('.user-role');
     roleEls.forEach(el => {
-      el.textContent = user.role || 'CSE Student & AI Engineer';
+      el.textContent = user.role || 'Personal Account';
     });
   },
 
@@ -43,7 +43,7 @@ const AuthGuard = {
     document.querySelectorAll('.logout-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        if (confirm('Are you sure you want to log out of Life Memory AI?')) {
+        if (confirm('Are you sure you want to log out of your Life Memory AI account?')) {
           ApiService.logout();
         }
       });
@@ -60,4 +60,3 @@ document.addEventListener('DOMContentLoaded', () => {
   AuthGuard.checkAuth(isPublic);
   AuthGuard.setupLogoutButtons();
 });
-

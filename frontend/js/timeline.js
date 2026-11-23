@@ -59,6 +59,12 @@ function renderTimeline(items) {
             ${escapeHtml(item.content)}
           </div>
 
+          ${item.previousValue ? `
+            <div style="margin-bottom: 8px; padding: 6px 10px; background: rgba(245, 158, 11, 0.08); border-left: 3px solid #F59E0B; border-radius: 4px; font-size: 0.78rem; color: #92400E;">
+              <strong>↻ Evolved from:</strong> ${escapeHtml(item.previousValue)}
+            </div>
+          ` : ''}
+
           ${item.tags && item.tags.length > 0 ? `
             <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
               ${item.tags.map(t => `<span style="font-size: 0.72rem; padding: 2px 8px; background: var(--bg-secondary); border-radius: 4px; color: var(--text-muted);">#${escapeHtml(t)}</span>`).join('')}

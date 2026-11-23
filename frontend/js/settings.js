@@ -69,6 +69,12 @@ function loadMemoryPreferences() {
   if (topk && prefs.retrievalTopK) {
     topk.value = String(prefs.retrievalTopK);
   }
+
+  const geminiInput = document.getElementById('pref-gemini-key');
+  const storedKey = localStorage.getItem('lifememory_gemini_api_key') || prefs.geminiKey || '';
+  if (geminiInput) {
+    geminiInput.value = storedKey;
+  }
 }
 
 async function loadDocuments() {
@@ -205,16 +211,24 @@ function setupForms() {
     prefForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const store = getDataStore();
+      const geminiVal = document.getElementById('pref-gemini-key') ? document.getElementById('pref-gemini-key').value.trim() : '';
+      if (geminiVal) {
+        localStorage.setItem('lifememory_gemini_api_key', geminiVal);
+      } else {
+        localStorage.removeItem('lifememory_gemini_api_key');
+      }
+
       store.user.preferences = {
         autoExtract: document.getElementById('pref-auto-extract').checked,
         conflictDetection: document.getElementById('pref-conflict').checked,
         confidenceThreshold: parseInt(document.getElementById('pref-confidence-slider').value, 10) / 100,
         retrievalTopK: parseInt(document.getElementById('pref-topk').value, 10),
-        theme: 'light'
+        theme: 'light',
+        geminiKey: geminiVal
       };
       saveDataStore(store);
       localStorage.setItem('lifememory_user', JSON.stringify(store.user));
-      showToast('Cognitive memory engine preferences saved!', 'success');
+      showToast('Cognitive engine & AI model preferences saved!', 'success');
     });
   }
 
@@ -248,10 +262,9 @@ function exportDataAsJSON() {
 }
 
 function resetDemoData() {
-  if (confirm('Reset memory store to default CSE Student demonstration state?')) {
-    localStorage.removeItem(SEED_DATA_KEY);
-    initDataStore();
-    showToast('Demo state restored! Reloading...', 'info');
+  if (confirm('Reset memory store for this account?')) {
+    resetUserDataStore();
+    showToast('Store reset! Reloading...', 'info');
     setTimeout(() => window.location.reload(), 500);
   }
 }
