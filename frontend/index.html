@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life Memory AI — Your Memories. Your Conversations. Your Personal AI.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+  <!-- Landing Top Navigation -->
+  <header class="landing-nav">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="brand-logo-badge">LM</div>
+      <div class="brand-text-wrap">
+        <span class="brand-title">Life Memory AI</span>
+        <span class="brand-subtitle">Personal Cognitive Agent</span>
+      </div>
+    </div>
+
+    <nav class="landing-nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#stack">Technology</a>
+      <a href="dashboard.html" style="color: var(--primary); font-weight: 600;">Live Demo</a>
+    </nav>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <a href="login.html" class="btn btn-secondary btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Get Started Free</a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero-section">
+      <div class="hero-badge-pill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Next-Generation Persistent Cognitive Memory for AI
+      </div>
+
+      <h1 class="hero-title">
+        Your Memories. Your Conversations.<br>
+        <span class="hero-title-highlight">Your Personal AI Assistant.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Life Memory AI automatically extracts meaningful facts from your daily conversations, maintains an evolving knowledge graph of your personal life, and grounds future answers without ever hallucinating.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="chat.html" class="btn btn-primary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Start Chatting Now
+        </a>
+        <a href="dashboard.html" class="btn btn-secondary btn-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Explore Dashboard
+        </a>
+      </div>
+
+      <!-- Hero Interactive Preview Window -->
+      <div class="hero-preview-window">
+        <div class="window-header-bar">
+          <div class="window-dot red"></div>
+          <div class="window-dot yellow"></div>
+          <div class="window-dot green"></div>
+          <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-left: 8px;">Life Memory Cognitive Loop &bull; Real-Time Memory Grounding</span>
+        </div>
+        
+        <div style="padding: 24px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; background: #FAFBFD;">
+          <!-- Left: User & AI Chat Sample -->
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 14px; box-shadow: var(--shadow-xs);">
+              <div style="font-size: 0.76rem; font-weight: 700; color: var(--primary); margin-bottom: 4px;">USER QUERY (Past Conversation)</div>
+              <div style="font-size: 0.92rem; color: var(--text-primary);">"I am a final year CSE student and my lifelong dream is to become an AI engineer."</div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: center; color: var(--primary);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            </div>
+
+            <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 14px; box-shadow: var(--shadow-xs);">
+              <div style="font-size: 0.76rem; font-weight: 700; color: var(--accent-emerald); margin-bottom: 4px;">USER QUERY (Weeks Later)</div>
+              <div style="font-size: 0.92rem; color: var(--text-primary);">"What is my career ambition and how should I prepare for it?"</div>
+              <div style="margin-top: 10px; padding: 10px; background: var(--bg-primary); border-radius: var(--radius-sm); border-left: 3px solid var(--primary); font-size: 0.86rem;">
+                <strong>AI Response:</strong> "You previously noted your dream is to become an AI engineer specializing in LLMs. Given your CSE background graduating in 2027, I recommend mastering RAG pipelines and vector databases..."
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Extraction & Grounding Card -->
+          <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">Extracted Memory Bank</span>
+              <span class="badge badge-active">Auto-Verified</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="padding: 10px; border-radius: var(--radius-sm); background: var(--cat-career-bg); border: 1px solid var(--cat-career-border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <span class="badge badge-career">Career</span>
+                  <span style="font-size: 0.72rem; color: var(--cat-career-text); font-weight: 600;">98% Confidence</span>
+                </div>
+                <div style="font-size: 0.82rem; color: var(--text-primary); font-weight: 500;">Aspires to become an AI Engineer focusing on LLMs and RAG.</div>
+              </div>
+
+              <div style="padding: 10px; border-radius: var(--radius-sm); background: var(--cat-education-bg); border: 1px solid var(--cat-education-border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <span class="badge badge-education">Education</span>
+                  <span style="font-size: 0.72rem; color: var(--cat-education-text); font-weight: 600;">96% Confidence</span>
+                </div>
+                <div style="font-size: 0.82rem; color: var(--text-primary); font-weight: 500;">CSE undergraduate senior graduating class of 2027.</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Grounding rule: Never hallucinates unsupported facts.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" style="padding: 80px 24px; max-width: 1200px; margin: 0 auto;">
+      <div class="section-title-wrap">
+        <span class="section-tag">Core Capabilities</span>
+        <h2 class="section-headline">Engineered for Persistent Intelligence</h2>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">Traditional LLMs reset their memory on every session. Life Memory AI gives your AI long-term semantic persistence.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-box">
+          <div class="feature-icon-wrapper" style="background: var(--primary-subtle); color: var(--primary);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Semantic Vector Memory</h3>
+          <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;">
+            Powered by high-dimensional embeddings and pgvector cosine similarity search to retrieve relevant memories even when queries use different wording.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrapper" style="background: var(--secondary-subtle); color: var(--secondary);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Memory Relationship Graph</h3>
+          <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;">
+            NetworkX-powered graph engine connects related goals, skills, projects, and life events, visualizing your personal knowledge graph interactively.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrapper" style="background: var(--cat-goals-bg); color: var(--cat-goals-text);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Conflict & Evolution Tracking</h3>
+          <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;">
+            When preferences or career paths evolve, the system flags contradictions and preserves chronological validity instead of destructively overwriting facts.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrapper" style="background: var(--cat-education-bg); color: var(--cat-education-text);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Document Intelligence</h3>
+          <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;">
+            Upload PDF resumes, thesis proposals, certificates, and notes. PyMuPDF extracts text, indexes content, and auto-generates memories with user approval.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrapper" style="background: var(--cat-events-bg); color: var(--cat-events-text);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Chronological Timeline</h3>
+          <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;">
+            An interactive timeline tracks your career milestones, degrees, certifications, and personal accomplishments chronologically with instant filtering.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrapper" style="background: var(--cat-achievements-bg); color: var(--cat-achievements-text);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Privacy & Full Control</h3>
+          <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;">
+            You own your memory bank. Search, edit, export in JSON, or permanently delete individual memories or entire accounts at any time with one click.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works 4-Step Flow -->
+    <section id="how-it-works" style="background: #FFFFFF; border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 80px 24px;">
+      <div style="max-width: 1100px; margin: 0 auto;">
+        <div class="section-title-wrap">
+          <span class="section-tag">Architecture Workflow</span>
+          <h2 class="section-headline">The 10-Step Memory Engine</h2>
+          <p style="color: var(--text-muted); font-size: 1.05rem;">From natural conversation to permanent, vectorized knowledge retrieval.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+          <div style="padding: 20px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: var(--radius-md);">
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 8px;">01</div>
+            <h4 style="font-weight: 700; margin-bottom: 6px;">Chat & Extraction</h4>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">User messages are analyzed by the LLM to identify durable personal facts across 10 categories.</p>
+          </div>
+
+          <div style="padding: 20px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: var(--radius-md);">
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 8px;">02</div>
+            <h4 style="font-weight: 700; margin-bottom: 6px;">Conflict Validation</h4>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">Facts are structured as validated JSON, checked for duplicates, and cross-referenced with past history.</p>
+          </div>
+
+          <div style="padding: 20px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: var(--radius-md);">
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 8px;">03</div>
+            <h4 style="font-weight: 700; margin-bottom: 6px;">Vector Embedding</h4>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">Approved facts are converted into high-dimensional vector embeddings and stored in PostgreSQL pgvector.</p>
+          </div>
+
+          <div style="padding: 20px; background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: var(--radius-md);">
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 8px;">04</div>
+            <h4 style="font-weight: 700; margin-bottom: 6px;">Grounded Retrieval</h4>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">Future queries trigger hybrid semantic search to ground replies in your real personal context.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technology Stack Section -->
+    <section id="stack" style="padding: 80px 24px; max-width: 1040px; margin: 0 auto; text-align: center;">
+      <span class="section-tag">Modern Engineering</span>
+      <h2 class="section-headline">Production-Ready Technology Stack</h2>
+      <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 40px;">Built with high-performance frameworks and clean architecture principles.</p>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;">
+        <span class="btn btn-secondary">FastAPI</span>
+        <span class="btn btn-secondary">PostgreSQL & pgvector</span>
+        <span class="btn btn-secondary">SQLAlchemy 2.0</span>
+        <span class="btn btn-secondary">Pydantic V2</span>
+        <span class="btn btn-secondary">NetworkX Graph</span>
+        <span class="btn btn-secondary">PyMuPDF</span>
+        <span class="btn btn-secondary">Chart.js</span>
+        <span class="btn btn-secondary">Docker</span>
+        <span class="btn btn-secondary">Pytest</span>
+      </div>
+    </section>
+
+    <!-- CTA Card -->
+    <section style="padding: 0 24px 80px; max-width: 1040px; margin: 0 auto;">
+      <div style="background: var(--gradient-brand-subtle); border: 1px solid var(--primary-border); border-radius: var(--radius-xl); padding: 50px 32px; text-align: center;">
+        <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 12px; color: var(--text-primary);">Ready to Experience Personal AI Memory?</h2>
+        <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto 28px; font-size: 1.05rem;">
+          Start chatting with your intelligent personal assistant or explore the live dashboard with preloaded memory nodes.
+        </p>
+        <div style="display: flex; gap: 14px; justify-content: center;">
+          <a href="register.html" class="btn btn-primary btn-lg">Create Free Account</a>
+          <a href="dashboard.html" class="btn btn-secondary btn-lg">Explore Demo</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer style="background: #FFFFFF; border-top: 1px solid var(--border-light); padding: 40px 24px; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px;">
+      <div class="brand-logo-badge" style="width: 28px; height: 28px; font-size: 0.85rem;">LM</div>
+      <strong style="color: var(--text-primary);">Life Memory AI</strong> &bull; Your Memories. Your Conversations. Your Personal AI.
+    </div>
+    <p>Computer Science & Engineering Capstone Project &bull; Full-Stack Autonomous Cognitive Memory Architecture</p>
+    <div style="margin-top: 16px; display: flex; gap: 20px; justify-content: center;">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="chat.html">Chat</a>
+      <a href="memories.html">Memories</a>
+      <a href="timeline.html">Timeline</a>
+      <a href="graph.html">Relationship Graph</a>
+      <a href="settings.html">Privacy & Settings</a>
+    </div>
+  </footer>
+
+  <script src="js/mock-data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/toast.js"></script>
+</body>
+</html>
+
