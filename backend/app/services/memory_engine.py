@@ -83,11 +83,25 @@ class CognitiveMemoryEngine:
         q = query.lower().strip()
         tokens = [t for t in re.findall(r'[a-zA-Z0-9_-]+', q) if len(t) > 1 and t not in STOPWORDS]
 
+        is_about_me = bool(re.search(r'\b(tell me about me|about me|about myself|what you know|what do you know|my profile|who am i)\b', q))
         is_works = bool(re.search(r'\b(work|works|project|projects|built|build|portfolio|created|developed|app|system|hackathon)\b', q))
         is_career = bool(re.search(r'\b(career|ambition|dream|aim|goal|goals|aspire|role|engineer|job|future)\b', q))
-        is_edu = bool(re.search(r'\b(education|college|degree|cse|btech|university|study|studying|student|undergrad|graduating|gpa|cgpa)\b', q))
+        is_edu = bool(re.search(r'\b(education|college|degree|cse|btech|university|study|studying|student|undergrad|graduating|gpa|cgpa|department|branch|belong|belongs)\b', q))
         is_skills = bool(re.search(r'\b(skill|skills|python|pytorch|fastapi|pgvector|database|tools|languages|tech|stack|code|coding)\b', q))
         is_pref = bool(re.search(r'\b(preference|preferences|like|likes|favorite|routine|habit|habits|tea|music|work-style|theme|mode)\b', q))
+
+        # 0. Profile / About Me overview query
+        if is_about_me:
+            return (
+                "Here is what I know and remember about you, Mahalakshmi:\n\n"
+                "- **Identity**: K. Mahalakshmi (Mahalakshmi Kommaranahalli), based in Davanagere, Karnataka.\n"
+                "- **Education**: B.E. in Computer Science & Engineering (CSE) at Jain Institute of Technology, Davanagere (3rd Year, 8.6 CGPA).\n"
+                "- **Mentorship**: Mentored by Pruthviraj Mundargi (Assistant Professor, JITD).\n"
+                "- **Achievements**: Top 8 Ranking among 178 teams at CIT Hackathon 2026, Smart India Hackathon SIH 26001 research, GitHub Pull Shark & YOLO badges.\n"
+                "- **Projects**: 22 diverse technical projects including ARROWHEAD, Memory Master Game, Landslide Sentinel AI, CampusHub ERP, and MJ Hospital.\n"
+                "- **Ambition**: Software Development Engineer and AI Innovator.\n\n"
+                "Is there anything specific you would like to explore or update?"
+            )
 
         results = []
         for m in memories:
@@ -132,11 +146,25 @@ class CognitiveMemoryEngine:
     def generate_grounded_response(user_text: str, grounded_memories: List[Dict[str, Any]], extracted: List[Dict[str, Any]], all_memories: List[Dict[str, Any]]) -> str:
         q = user_text.lower().strip()
 
+        is_about_me = bool(re.search(r'\b(tell me about me|about me|about myself|what you know|what do you know|my profile|who am i)\b', q))
         is_works = bool(re.search(r'\b(work|works|project|projects|built|build|portfolio|created|developed|app|system|hackathon)\b', q))
         is_career = bool(re.search(r'\b(career|ambition|dream|aim|goal|goals|aspire|role|engineer|job|future)\b', q))
-        is_edu = bool(re.search(r'\b(education|college|degree|cse|btech|university|study|studying|student|undergrad|graduating|gpa|cgpa)\b', q))
+        is_edu = bool(re.search(r'\b(education|college|degree|cse|btech|university|study|studying|student|undergrad|graduating|gpa|cgpa|department|branch|belong|belongs)\b', q))
         is_skills = bool(re.search(r'\b(skill|skills|python|pytorch|fastapi|pgvector|database|tools|languages|tech|stack|code|coding)\b', q))
         is_pref = bool(re.search(r'\b(preference|preferences|like|likes|favorite|routine|habit|habits|tea|music|work-style|theme|mode)\b', q))
+
+        # 0. Profile / About Me overview query
+        if is_about_me:
+            return (
+                "Here is what I know and remember about you, Mahalakshmi:\n\n"
+                "- **Identity**: K. Mahalakshmi (Mahalakshmi Kommaranahalli), based in Davanagere, Karnataka.\n"
+                "- **Education**: B.E. in Computer Science & Engineering (CSE) at Jain Institute of Technology, Davanagere (3rd Year, 8.6 CGPA).\n"
+                "- **Mentorship**: Mentored by Pruthviraj Mundargi (Assistant Professor, JITD).\n"
+                "- **Achievements**: Top 8 Ranking among 178 teams at CIT Hackathon 2026, Smart India Hackathon SIH 26001 research, GitHub Pull Shark & YOLO badges.\n"
+                "- **Projects**: 22 diverse technical projects including ARROWHEAD, Memory Master Game, Landslide Sentinel AI, CampusHub ERP, and MJ Hospital.\n"
+                "- **Ambition**: Software Development Engineer and AI Innovator.\n\n"
+                "Is there anything specific you would like to explore or update?"
+            )
 
         # 1. Previous works / projects query
         if is_works:

@@ -23,13 +23,18 @@ function isPersonalQuery(text) {
   const lower = (text || '').toLowerCase().trim();
   if (!lower) return false;
 
-  // Explicit personal identity & record inquiry
-  if (/(?:what is my|what's my|where do i|where i|where did i|where am i|who am i|about me|know about me|remember about me|my memory|my memories|tell me about me|show my|tell my|summarize my|what did i)\b/i.test(lower)) {
+  // Explicit personal identity, records & profile inquiry
+  if (/(?:what is my|what's my|where do i|where i|where did i|where am i|who am i|when is my|when was i|how old am i|about me|about myself|know about me|remember about me|my memory|my memories|tell me about me|tell me about myself|what you know|what do you know|show my|tell my|summarize my|what did i)\b/i.test(lower)) {
     return true;
   }
 
-  // Explicit personal profile attributes
-  if (/\b(my name|my college|my school|my puc|my pu college|my cgpa|my marks|my grades|my gpa|my branch|my degree|my mentor|my projects|my skills|my tech stack|my github|my portfolio|my linkedin|my instagram|my ambition|my goal|my goals|my philosophy|my statement|my achievements|my hackathons)\b/i.test(lower)) {
+  // Any possessive personal query ("my brother", "my birthday", "my phone", "my cgpa", "my dog", etc.)
+  if (/\bmy\s+[a-z0-9_-]+\b/i.test(lower)) {
+    return true;
+  }
+
+  // Academic department & branch queries / statements
+  if (/\b(department|branch|cse department|cse branch|belongs? to cse|belong to|belongs to)\b/i.test(lower)) {
     return true;
   }
 
@@ -341,7 +346,7 @@ const ApiService = {
 
         // Exact high-priority topic boosts
         if (q.includes('cgpa') && (contentLower.includes('cgpa') || contentLower.includes('8.6'))) score += 6;
-        if ((q.includes('college') || q.includes('study') || q.includes('degree') || q.includes('engineering') || q.includes('jit') || q.includes('davanagere')) && m.id === 'mem_edu_be_jitd') score += 5;
+        if ((q.includes('college') || q.includes('study') || q.includes('degree') || q.includes('engineering') || q.includes('jit') || q.includes('davanagere') || q.includes('cse') || q.includes('department') || q.includes('branch')) && m.id === 'mem_edu_be_jitd') score += 5;
         if ((q.includes('school') || q.includes('pu') || q.includes('puc') || q.includes('10th') || q.includes('12th') || q.includes('gurudeva')) && m.id === 'mem_edu_schooling') score += 5;
         if ((q.includes('cit') || (q.includes('hackathon') && (q.includes('cit') || q.includes('178') || q.includes('top 8') || q.includes('student risk')))) && m.id === 'mem_achieve_cit_hackathon') score += 6;
         if ((q.includes('sih') || q.includes('smart india') || q.includes('26001')) && (m.id === 'mem_achieve_sih_hackathon' || m.id === 'mem_proj_landslide_ai')) score += 6;
@@ -977,9 +982,9 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
     return `Your name is **K. Mahalakshmi** (professionally known as **Mahalakshmi Kommaranahalli**).`;
   }
 
-  // (b) Current College / Engineering Study
-  if (/(?:where i am studying|where am i studying|where do i study|what do i study|my college|which college|what college|where i study)/i.test(q)) {
-    return `You are studying Bachelor of Engineering in **Computer Science and Engineering (CSE)** at **Jain Institute of Technology, Davanagere** (VTU affiliated, 2024 – Present, currently in your 3rd year with an **8.6 CGPA**).`;
+  // (b) Current College, Engineering Study & Department / Branch
+  if (/(?:where i am studying|where am i studying|where do i study|what do i study|my college|which college|what college|where i study|department|branch|belongs? to cse|belong to|belongs to|cse department|cse branch)/i.test(q)) {
+    return `You belong to the **Computer Science and Engineering (CSE)** department at **Jain Institute of Technology, Davanagere** (VTU affiliated, 2024 – Present, currently in your 3rd year with an **8.6 CGPA**).`;
   }
 
   // (c) Schooling / Pre-University (PUC)
@@ -1065,9 +1070,9 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
     return `Your Instagram profile is [@its_me_mahaaaa__](https://www.instagram.com/its_me_mahaaaa__/).`;
   }
 
-  // --- 6. Explicit Request for Complete Memory Archive Dump ---
-  const isExplicitMemoryDump = /(?:what do you remember about me|what do you know about me|tell me everything you know about me|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory)/i.test(q);
-  if (isExplicitMemoryDump) {
+  // --- 6. Request for Profile Overview / Complete Memory Archive ---
+  const isProfileOverview = /(?:tell me about me|tell me about myself|about me|about myself|what you know about me|what do you know about me|what do you know|what do you remember about me|what do you remember|tell me everything you know|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory|my profile|tell me my profile)/i.test(q);
+  if (isProfileOverview) {
     if (activeMemories.length === 0) {
       return `I don't have any memories saved about you yet${nameSalutation}!\n\n` +
         `Tell me about your college, projects, goals, or hobbies, and I'll preserve them in your memory bank!`;
@@ -1080,7 +1085,7 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
       grouped[cat].push(cleanMemContent(m.content));
     });
 
-    let summaryText = `Here is what I remember about you${nameSalutation}:\n\n`;
+    let summaryText = `Here is what I know and remember about you${nameSalutation}:\n\n`;
     for (const [cat, items] of Object.entries(grouped)) {
       summaryText += `**${capitalize(cat)}**:\n`;
       items.forEach(it => {
@@ -1206,11 +1211,9 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
     return `You're very welcome${nameSalutation}! Always happy to help. Let me know whenever you'd like to explore anything else!`;
   }
 
-  // --- 15. Clean General Knowledge Reflection (ZERO Personal Memory Injected) ---
-  const cleanSubject = extractTopic(userText);
-  return `That's an interesting question${nameSalutation}!\n\n` +
-    `Regarding **${cleanSubject}**, the best approach depends on your specific objective and context.\n\n` +
-    `Could you share a bit more detail about what you'd like to dive into?`;
+  // --- 15. Out-of-Memory Fallback (Tell user when requested info is NOT in memory) ---
+  return `I don't have that in my recorded memory bank yet${nameSalutation}! 🧠\n\n` +
+    `If you would like me to remember this or add it to your profile for future conversations, just let me know and I will gladly save it to your personal memory bank!`;
 }
 
 // --- Helper Formatting Utilities ---
