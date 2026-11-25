@@ -236,17 +236,18 @@ function updateMemoryDrawer(messages) {
   let citedMemories = [];
   if (lastAssistant && lastAssistant.groundedMemories && lastAssistant.groundedMemories.length > 0) {
     citedMemories = allMemories.filter(m => lastAssistant.groundedMemories.includes(m.id));
-  } else {
-    // If none cited in current reply, display top active memory highlights
-    citedMemories = allMemories.filter(m => m.status === 'active').slice(0, 3);
   }
 
-  if (badge) badge.textContent = `${citedMemories.length} Active`;
+  if (badge) badge.textContent = `${citedMemories.length} Grounded`;
 
   if (citedMemories.length === 0) {
     drawerBody.innerHTML = `
       <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 0.85rem;">
-        No memories cited yet. Chat about your career, goals, hobbies, or life updates to see real-time memory retrieval!
+        <div style="font-size: 1.6rem; margin-bottom: 8px;">🧠</div>
+        <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">General Inquiry (No Memories Cited)</div>
+        <span style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; display: block;">
+          This response did not reference personal stored memories. When you ask about your college, CGPA, projects, or achievements, referenced memories will appear here.
+        </span>
       </div>
     `;
     return;
