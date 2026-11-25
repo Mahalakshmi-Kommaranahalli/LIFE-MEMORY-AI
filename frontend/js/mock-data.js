@@ -5,7 +5,7 @@
  */
 
 const ACCOUNTS_REGISTRY_KEY = 'lifememory_accounts_v4';
-const DATASTORE_VERSION = 'v6_mahalakshmi_complete_profile_2026';
+const DATASTORE_VERSION = 'v7_mahalakshmi_clean_purge_2026';
 const DEMO_EMAIL = 'mahalakshmi@example.com';
 
 const DEMO_ACCOUNT = {
@@ -760,6 +760,13 @@ function initDataStore(targetEmail) {
   }
 }
 
+function isCorruptedQuestionMemory(mem) {
+  if (!mem || !mem.content) return false;
+  const c = mem.content.trim().toLowerCase();
+  return /^(?:education|career|personal|goal|project|achievement|preference)?\s*:?\s*(?:where|what|when|who|why|how|which)\s+/i.test(c) ||
+         /(?:where i am studying|where i completed|what is my name|what is my cgpa)/i.test(c);
+}
+
 function getDataStore(targetEmail) {
   const email = (targetEmail || getCurrentUserEmail() || DEMO_EMAIL).toLowerCase();
   const key = getUserStoreKey(email);
@@ -768,6 +775,8 @@ function getDataStore(targetEmail) {
     try {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.memories) && parsed.version === DATASTORE_VERSION) {
+        // Sanitize: remove any question memories that might have slipped into localStorage
+        parsed.memories = parsed.memories.filter(m => !isCorruptedQuestionMemory(m));
         return parsed;
       }
     } catch (e) {}

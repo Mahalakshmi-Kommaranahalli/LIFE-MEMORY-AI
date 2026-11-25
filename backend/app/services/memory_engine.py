@@ -25,6 +25,12 @@ class CognitiveMemoryEngine:
         extracted = []
         text_lower = user_text.lower().strip()
 
+        # Guard: questions must NEVER be extracted as memories!
+        if (text_lower.endswith('?') or
+            re.match(r'^(where|what|when|who|whom|why|how|which|can|could|would|will|do|does|did|is|are|am|tell me|show me)\b', text_lower) or
+            re.match(r'^(where|what|who|when|why|how)\s+i\s+', text_lower)):
+            return []
+
         # Step 4 & 5: Pattern-based & semantic fact extractor
         career_pattern = r"(?:my dream is|i want to become|i aim to|my career ambition is|i aspire to be)\s+(.+)"
         career_match = re.search(career_pattern, user_text, re.IGNORECASE)
@@ -134,66 +140,56 @@ class CognitiveMemoryEngine:
 
         # 1. Previous works / projects query
         if is_works:
-            skill_mem = next((m for m in all_memories if m.get("category") == "skills"), None)
             return (
                 "Based on your verified memory records, here is an organized summary of your key projects and previous works:\n\n"
-                "1. **Life Memory AI (Capstone Project)**\n"
-                "- **Overview**: An intelligent persistent personal memory assistant utilizing hybrid RAG (semantic + keyword search) and knowledge graph mapping.\n"
-                "- **Architecture**: Built using Python, FastAPI, PostgreSQL, and pgvector.\n"
-                "- **Status**: Active / In Development\n\n"
-                "2. **Autonomous Memory Agent Prototype (Hackathon Winner)**\n"
-                "- **Achievement**: Won **1st Place in the University AI Hackathon** for designing an autonomous cognitive memory agent prototype.\n"
-                "- **Status**: Completed / Milestone Verified\n\n"
-                "3. **Long-Term Memory AI Research Paper**\n"
-                "- **Objective**: Publishing an academic writeup on Long-Term AI Memory Retrievability for LLM agents by Q1 2027.\n"
-                "- **Status**: Active Research\n\n"
-                "4. **Core Technical Competencies Applied**:\n"
-                f"- {skill_mem.get('content') if skill_mem else 'Proficient in Python, PyTorch, FastAPI, PostgreSQL, pgvector, and NetworkX.'}\n\n"
-                "Would you like to drill into the technical architecture of any of these works or discuss next milestones?"
+                "1. **ARROWHEAD — Infinite Logic**: Minimalist JavaScript infinite logic game (GitHub Pages: https://mahalakshmi-kommaranahalli.github.io/arrowhead/)\n"
+                "2. **Memory Master Game — Memoryverse**: Interactive 20-level tech memory game (GitHub Pages: https://mahalakshmi-kommaranahalli.github.io/memory-master-game/)\n"
+                "3. **Landslide Sentinel AI (SIH 26001)**: Early-warning ML model with Python Flask & SVM (85.71% validation accuracy)\n"
+                "4. **Student Risk Identification System**: CIT Hackathon 2026 Top 8 ranking among 178 teams\n"
+                "5. **CampusHub ERP**: College management & student services platform (Vercel: https://campus-hub-erp-xi.vercel.app/)\n"
+                "6. **MJ Hospital**: Digital healthcare records system (Vercel: https://mj-hospital.vercel.app/)\n"
+                "7. **LoRa-Based Smart Irrigation**: ESP32 & LoRa telemetry for precision farming\n"
+                "8. **Code Blaster.exe**: Teachers' Day 2026 tribute to mentor Pruthviraj Mundargi\n\n"
+                "Would you like to drill into the technical architecture of any of these works?"
             )
 
         # 2. Career Ambition Query
         if is_career:
-            career_mem = next((m for m in all_memories if m.get("category") == "career"), None)
-            edu_mem = next((m for m in all_memories if m.get("category") == "education"), None)
-            goal_mem = next((m for m in all_memories if m.get("category") == "goals"), None)
             return (
-                "Here is your current career profile and long-term ambition from memory:\n\n"
-                f"- **Target Career Role**: {career_mem.get('content') if career_mem else 'Aspires to become a Senior AI / Machine Learning Engineer focusing on LLMs and cognitive architectures.'}\n"
-                f"- **Academic Foundation**: {edu_mem.get('content') if edu_mem else 'Computer Science and Engineering (CSE) senior undergraduate student graduating in 2027.'}\n"
-                f"- **Key Milestone Target**: {goal_mem.get('content') if goal_mem else 'Publish research paper and complete DeepLearning.AI Specialization.'}\n\n"
-                "Your project work in Life Memory AI and hackathon victory give you a strong portfolio for top AI engineering roles! How can I assist with your career prep today?"
+                "Here is your career ambition and developer philosophy from memory:\n\n"
+                "- **Ambition**: Aiming to become a high-impact Software Development Engineer and AI Innovator building scalable, accessible solutions across Full-Stack Web, AI/ML, and IoT.\n"
+                "- **Philosophy**: *'I believe in learning by building. Every project gives me an opportunity to explore something new, solve a problem, improve my skills, and turn an idea into reality. KEEP LEARNING. KEEP BUILDING. KEEP GROWING.'*\n\n"
+                "How can I assist with your development or career planning today?"
             )
 
         # 3. Education Query
         if is_edu:
-            edu_mem = next((m for m in all_memories if m.get("category") == "education"), None)
             return (
-                "According to your long-term memory records:\n\n"
-                f"- **Degree**: {edu_mem.get('content') if edu_mem else 'Computer Science and Engineering (CSE) undergraduate student graduating in 2027.'}\n"
-                "- **Academic Focus**: Machine Learning, Distributed Systems, Vector Databases, and Software Architecture.\n\n"
-                "Would you like to review how your coursework connects to your AI career goals?"
+                "According to your long-term academic records:\n\n"
+                "- **Degree**: Bachelor of Engineering in Computer Science and Engineering (CSE) at Jain Institute of Technology, Davanagere (VTU affiliated, 2024 – Present, 3rd Year).\n"
+                "- **CGPA**: 8.6 CGPA (Second-Year Academic Performance).\n"
+                "- **Prior Education**: 10th Standard at Sri Gurudeva High School; 12th Standard (PUC) at Sir M V PU College."
             )
 
         # 4. Skills Query
         if is_skills:
-            skill_mem = next((m for m in all_memories if m.get("category") == "skills"), None)
             return (
                 "Here are your verified technical skills and proficiencies from memory:\n\n"
-                "- **Languages & ML**: Python, PyTorch, Scikit-Learn.\n"
-                "- **Backend & Systems**: FastAPI, Pydantic, PostgreSQL, pgvector, Docker.\n"
-                "- **AI Knowledge**: RAG Pipelines, Semantic Embeddings, Knowledge Graphs (NetworkX).\n\n"
-                "All your projects directly exercise this stack!"
+                "- **Programming Languages**: C, Python, Java, JavaScript\n"
+                "- **Frontend**: HTML5, CSS3, Modern JavaScript (ES6+), React, Vite\n"
+                "- **Backend**: Python Flask, PHP, REST APIs\n"
+                "- **Databases**: MySQL, PostgreSQL, SQLite, SQL\n"
+                "- **AI / Machine Learning**: Scikit-learn, Naive Bayes, Support Vector Machines (SVM), Predictive Analytics\n"
+                "- **IoT & Embedded**: ESP32, LoRa wireless RF, Arduino, OLED displays, sensors\n"
+                "- **Cloud & Deployment**: GitHub Pages, Netlify, Vercel, Docker basics"
             )
 
         # 5. Preferences Query
         if is_pref:
             pref_mem = next((m for m in all_memories if m.get("category") == "preferences"), None)
-            personal_mem = next((m for m in all_memories if m.get("category") == "personal"), None)
             return (
-                "Here are your recorded personal preferences and work habits:\n\n"
-                f"- **UI & Design**: {pref_mem.get('content') if pref_mem else 'Prefers clean light-mode interfaces with high contrast typography.'}\n"
-                f"- **Daily Routine**: {personal_mem.get('content') if personal_mem else 'Prefers deep work blocks with instrumental lo-fi beats and green tea.'}\n\n"
+                "Here are your recorded personal preferences from memory:\n\n"
+                f"- **Preference**: {pref_mem.get('content') if pref_mem else 'Clean light-mode interfaces, building real-world projects, continuous learning and experimentation.'}\n\n"
                 "I always keep these in mind when assisting you!"
             )
 

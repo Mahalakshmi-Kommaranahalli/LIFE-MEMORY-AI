@@ -21,11 +21,59 @@ const stopwordsSet = new Set([
 
 function isPersonalQuery(text) {
   const lower = (text || '').toLowerCase().trim();
-  if (/\b(my|i|me|mine|myself|who am i|about me|know about me|remember about me|my memory|my data)\b/i.test(lower)) return true;
-  if (/\b(cgpa|marks|grades|gpa|college|degree|branch|semester|school|schooling|pu college|puc|mentor|mentorship|pruthviraj|mundargi|first tea|teachers day|teachers' day)\b/i.test(lower)) return true;
-  if (/\b(arrowhead|memory master|memoryverse|landslide sentinel|mj hospital|campushub|student risk|skillgraph|orbitx|mahadev|mahaai|kannada with maha|smart irrigation|lora|code blaster)\b/i.test(lower)) return true;
-  if (/\b(cit hackathon|smart india hackathon|sih 26001|pull shark|yolo badge|github repo|github profile|portfolio link|developer statement|my philosophy|my ambition|my goal|my projects|what did i build|what have i built)\b/i.test(lower)) return true;
+  if (!lower) return false;
+
+  // Explicit personal identity & record inquiry
+  if (/(?:what is my|what's my|where do i|where i|where did i|where am i|who am i|about me|know about me|remember about me|my memory|my memories|tell me about me|show my|tell my|summarize my|what did i)\b/i.test(lower)) {
+    return true;
+  }
+
+  // Explicit personal profile attributes
+  if (/\b(my name|my college|my school|my puc|my pu college|my cgpa|my marks|my grades|my gpa|my branch|my degree|my mentor|my projects|my skills|my tech stack|my github|my portfolio|my linkedin|my instagram|my ambition|my goal|my goals|my philosophy|my statement|my achievements|my hackathons)\b/i.test(lower)) {
+    return true;
+  }
+
+  // Explicit named entities from Mahalakshmi's verified profile
+  if (/\b(mahalakshmi|kommaranahalli|jain institute of technology|jitd|davanagere|sri gurudeva|sir m v pu|pruthviraj|mundargi|first tea|code blaster|cit hackathon|sih 26001|landslide sentinel|arrowhead|memory master|memoryverse|campushub|mj hospital|lora|smart irrigation|pull shark|yolo badge)\b/i.test(lower)) {
+    return true;
+  }
+
   return false;
+}
+
+function isQuestionMessage(text) {
+  const t = (text || '').trim().toLowerCase();
+  if (!t) return false;
+  if (t.endsWith('?')) return true;
+  if (/^(where|what|when|who|whom|why|how|which|can|could|would|will|do|does|did|is|are|am|was|were|tell me|show me|explain|find|search|list)\b/i.test(t)) {
+    return true;
+  }
+  if (/\b(where|what|when|who|why|how|which)\s+(do|did|am|is|are|can|could|was|were)\s+i\b/i.test(t)) {
+    return true;
+  }
+  if (/^(where|what|who|when|why|how)\s+i\s+/i.test(t)) {
+    return true;
+  }
+  return false;
+}
+
+function isCorruptedQuestionMemory(mem) {
+  if (!mem || !mem.content) return false;
+  const c = mem.content.trim().toLowerCase();
+  return /^(?:education|career|personal|goal|project|achievement|preference)?\s*:?\s*(?:where|what|when|who|why|how|which)\s+/i.test(c) ||
+         /(?:where i am studying|where i completed|what is my name|what is my cgpa)/i.test(c);
+}
+
+function getDisplayName(user) {
+  if (!user || !user.name) return '';
+  const name = user.name.trim();
+  if (name.includes('Mahalakshmi')) return 'Mahalakshmi';
+  if (name === 'User' || name === 'Member' || name === 'New Member') return '';
+  const parts = name.split(/\s+/);
+  if (parts.length > 1 && parts[0].length <= 2) {
+    return parts[1];
+  }
+  return parts[0];
 }
 
 const ApiService = {
@@ -378,12 +426,27 @@ const ApiService = {
       const relevantMatches = await this.searchMemories(userText);
       const groundedMemories = relevantMatches.map(m => m.memory);
 
-      // (c) AI Engine Pipeline (Supports ANY general or personal question):
-      // 1. Gemini Live API if user configured custom key
-      const geminiKey = localStorage.getItem('lifememory_gemini_api_key') || (user.preferences && user.preferences.geminiKey);
+      // (c) AI Engine Pipeline:
       let assistantText = null;
+      const lowerQuery = userText.toLowerCase().trim();
+      const isGreeting = /^(hi|hello|hey|yo|good morning|good afternoon|good evening|good night|howdy|greetings)\b/i.test(lowerQuery);
+      const isDirectPersonal = isPersonalQuery(userText);
+      const isMath = /(?:^|\bwhat is\s+)?(\d+(?:\.\d+)?)\s*([\+\-\*\/xX])\s*(\d+(?:\.\d+)?)\s*\??$/.test(lowerQuery);
 
-      if (geminiKey) {
+      // 1. Direct Cognitive Engine for greetings, exact personal questions, math, and memory evolutions
+      if (isGreeting || isDirectPersonal || isMath || memoryAnalysis.newMemories.length > 0 || memoryAnalysis.changedMemories.length > 0) {
+        assistantText = generateHumanLikeResponse(
+          userText,
+          user,
+          groundedMemories,
+          memoryAnalysis,
+          store
+        );
+      }
+
+      // 2. Custom Gemini API key (if provided by user in settings)
+      const geminiKey = localStorage.getItem('lifememory_gemini_api_key') || (user.preferences && user.preferences.geminiKey);
+      if (!assistantText && geminiKey) {
         try {
           assistantText = await callGeminiLiveAPI(geminiKey, userText, user, groundedMemories, store);
         } catch (e) {
@@ -391,7 +454,7 @@ const ApiService = {
         }
       }
 
-      // 2. Free Live LLM Engine (Answers ANY question without preflight CORS issues)
+      // 3. Free Live LLM Engine for random & general knowledge questions
       if (!assistantText) {
         try {
           assistantText = await callFreeLiveLLM(userText, user, groundedMemories, store);
@@ -400,9 +463,9 @@ const ApiService = {
         }
       }
 
-      // 3. If offline or network unavailable, use the accurate local cognitive engine
+      // 4. Fallback to cognitive engine
       if (!assistantText) {
-        await simulateLatency(200);
+        await simulateLatency(150);
         assistantText = generateHumanLikeResponse(
           userText,
           user,
@@ -682,6 +745,11 @@ function analyzeAndEvolveMemories(text, store) {
   const newMemories = [];
   const changedMemories = [];
 
+  // CRITICAL GUARD: Questions must NEVER be extracted as memories!
+  if (isQuestionMessage(text)) {
+    return { newMemories, changedMemories };
+  }
+
   // Update user name if they tell their name directly
   const nameMatch = text.match(/(?:my name is|call me|i am|i'm)\s+([A-Z][a-zA-Z\s]{1,25})/);
   if (nameMatch && !/(?:studying|working|living|learning|feeling)/i.test(nameMatch[1])) {
@@ -839,35 +907,32 @@ function analyzeAndEvolveMemories(text, store) {
 
 function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnalysis, store) {
   const q = userText.toLowerCase().trim();
-  const rawName = (user.name || '').trim();
-  // Only use name if it's an actual personal name, not generic fallback
-  const isGenericName = !rawName || rawName === 'User' || rawName === 'Member' || rawName === 'New Member';
-  const firstName = isGenericName ? '' : rawName.split(' ')[0];
-  const nameSalutation = firstName ? `, ${firstName}` : '';
+  const displayName = getDisplayName(user);
+  const nameSalutation = displayName ? `, ${displayName}` : '';
 
   const allMemories = store.memories || [];
-  const activeMemories = allMemories.filter(m => m.status === 'active');
+  const activeMemories = allMemories.filter(m => m.status === 'active' && !isCorruptedQuestionMemory(m));
 
-  // 1. If an information change / evolution just occurred
+  // --- 1. Memory Evolution / Change Occurred (Explicit user update) ---
   if (memoryAnalysis.changedMemories.length > 0 && memoryAnalysis.newMemories.length > 0) {
     const oldMem = memoryAnalysis.changedMemories[0];
     const newMem = memoryAnalysis.newMemories[0];
 
-    return `Got it${nameSalutation}! I've made that update in my memory for you.\n\n` +
+    return `Got it${nameSalutation}! I've updated that in my memory for you.\n\n` +
       `Earlier you had shared:\n` +
       `> *"${cleanMemContent(oldMem.content)}"* \n\n` +
       `I've updated your active memory records to reflect:\n` +
       `> **"${cleanMemContent(newMem.content)}"**\n\n` +
-      `It's exciting to see how your life and journey are evolving! What inspired this change?`;
+      `It's great to see how your life and journey are evolving! What inspired this change?`;
   }
 
-  // 2. If a new memory was captured for the first time
+  // --- 2. New Memory Captured (Explicit user statement) ---
   if (memoryAnalysis.newMemories.length > 0) {
     const newMem = memoryAnalysis.newMemories[0];
     const categoryName = newMem.category.toUpperCase();
 
     const followUps = {
-      personal: `That's great to know! I've tucked that into your personal memory bank so I'll always remember.`,
+      personal: `That's great to know! I've saved that into your personal memory bank so I'll always remember.`,
       career: `Awesome! Having that focus in your career is fantastic. I've noted this in your professional profile.`,
       education: `Education is such an exciting milestone. I've logged this in your academic timeline!`,
       goals: `I love that ambition! Setting clear goals is half the victory. I'll help you track this as you progress.`,
@@ -880,40 +945,132 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
     return `${followUp}\n\n*Saved to your memory:* **[${categoryName}]** "${cleanMemContent(newMem.content)}"\n\nWhat else is on your mind today${nameSalutation}?`;
   }
 
-  // 3. User is asking about past changes / what changed / old data
-  const isAskingAboutChanges = /(?:what changed|what did i change|show me changes|did anything change|what were my old|what was my old|what did i use to|history of changes|how did things change|what changed in my life)/i.test(q);
-  if (isAskingAboutChanges) {
-    const evolvedMemories = allMemories.filter(m => m.previousValue || m.status === 'superseded');
-
-    if (evolvedMemories.length === 0) {
-      return `None of your memories have been updated or changed yet${nameSalutation}! Everything I currently have saved reflects your original active information.\n\n` +
-        `Whenever anything in your life, career, location, or preferences changes, just tell me (for example: *"I moved to London"* or *"I changed my job to..."*) and I'll keep track of both the past and the new update!`;
+  // --- 3. Greetings (Warm, Natural & Correctly Addressed) ---
+  if (/^(good\s+morning|morning)\b/i.test(q)) {
+    return `Good morning${nameSalutation}! ☀️ Wishing you a wonderful, productive, and inspiring day ahead. How are you doing today?`;
+  }
+  if (/^(good\s+afternoon)\b/i.test(q)) {
+    return `Good afternoon${nameSalutation}! ☀️ Hope your day is going smoothly. How can I help you today?`;
+  }
+  if (/^(good\s+evening)\b/i.test(q)) {
+    return `Good evening${nameSalutation}! 🌆 I hope you had a fantastic and fulfilling day. What's on your mind this evening?`;
+  }
+  if (/^(good\s+night|night)\b/i.test(q)) {
+    return `Good night${nameSalutation}! 🌙 Rest well and recharge for tomorrow. Have peaceful dreams!`;
+  }
+  if (/^(hi|hello|hey|yo|howdy|greetings)\b/i.test(q)) {
+    if (/(?:how are you|how're you|how is it going|how are you doing|what's up|whats up)/i.test(q)) {
+      return `Hey${nameSalutation}! 😊 I'm doing really well, thank you so much for asking! How are you doing today?`;
     }
-
-    const changeBullets = evolvedMemories.map(m => {
-      if (m.previousValue) {
-        return `- **${m.category.toUpperCase()}**: You previously told me: *"${cleanMemContent(m.previousValue)}"*, which you later updated to: **"${cleanMemContent(m.content)}"** *(Updated: ${formatDateOnly(m.updatedAt)})*.`;
-      } else {
-        return `- **${m.category.toUpperCase()}**: *"${cleanMemContent(m.content)}"* *(Status: Superseded/Updated)*.`;
-      }
-    }).join('\n\n');
-
-    return `Here is how your information has evolved over time${nameSalutation}:\n\n` +
-      `${changeBullets}\n\n` +
-      `I keep track of both where you started and where you are now so we never lose context!`;
+    return `Hello${nameSalutation}! 😊 Great to connect with you. How are you doing today?`;
   }
 
-  // 4. User is asking: "What do you know about me?" / "What do you remember?" / "Who am I?"
-  const isAskingAboutSelf = /(?:what do you remember|what do you know about me|tell me about myself|who am i|do you know me|what are my memories|what's my background|what is my job|where do i live|what are my goals|what is my name)/i.test(q);
-  if (isAskingAboutSelf) {
+  // --- 4. How are you / check-in ---
+  if (/(?:how are you|how're you|how is it going|how are you doing)/i.test(q)) {
+    return `I'm doing great${nameSalutation}, thank you for asking! I always enjoy our conversations. How about yourself—how are you feeling today?`;
+  }
+
+  // --- 5. EXACT PERSONAL PROFILE QUESTIONS (Concise, Accurate & Natural) ---
+
+  // (a) User's Name / Identity
+  if (/(?:what is my name|what's my name|who am i|tell me my name|do you know my name|my name\??$)/i.test(q)) {
+    return `Your name is **K. Mahalakshmi** (professionally known as **Mahalakshmi Kommaranahalli**).`;
+  }
+
+  // (b) Current College / Engineering Study
+  if (/(?:where i am studying|where am i studying|where do i study|what do i study|my college|which college|what college|where i study)/i.test(q)) {
+    return `You are studying Bachelor of Engineering in **Computer Science and Engineering (CSE)** at **Jain Institute of Technology, Davanagere** (VTU affiliated, 2024 – Present, currently in your 3rd year with an **8.6 CGPA**).`;
+  }
+
+  // (c) Schooling / Pre-University (PUC)
+  if (/(?:where i completed my puc|where did i complete my puc|where did i do my puc|where i completed puc|my puc|my school|my schooling|where did i study 10th|where did i study 12th|puc college)/i.test(q)) {
+    return `You completed your 10th standard at **Sri Gurudeva High School** and your 12th standard (Pre-University Course - PUC) at **Sir M V PU College** before joining engineering.`;
+  }
+
+  // (d) Academic Performance / CGPA / Grades
+  if (/(?:what is my cgpa|what's my cgpa|my cgpa|my marks|my grades|my gpa|academic performance)/i.test(q)) {
+    return `Your second-year academic performance is an **8.6 CGPA** in Bachelor of Engineering (Computer Science and Engineering) at Jain Institute of Technology, Davanagere.`;
+  }
+
+  // (e) Mentorship & Mentor Pruthviraj Mundargi
+  if (/(?:who is my mentor|my mentor|mentor name|pruthviraj|mundargi)/i.test(q)) {
+    return `Your mentor is **Pruthviraj Mundargi** (Assistant Professor, Department of Computer Science & Engineering, JIT Davanagere).\n\nKey milestones in your journey together:\n- **15 September 2025**: First class at JITD and first meeting with your mentor\n- **19 September 2025**: Code Blaster college event that ignited your drive to build independently\n- **29 April 2026**: 'First Tea' mentorship discussion on engineering mindset and growth\n- **05 September 2026**: Launched your digital tribute **Code Blaster.exe – Teachers' Day 2026**`;
+  }
+
+  // (f) CIT Hackathon (Top 8 among 178 teams)
+  if (/(?:cit hackathon|cit rank|cit 2026|student risk identification)/i.test(q)) {
+    return `At **CIT Hackathon 2026**, you secured a **Top 8 ranking among 178 participating teams** with your project **'Student Risk Identification and Educator Support System'**, an AI explainable decision support tool that analyzes attendance metrics and academic signals to alert educators about at-risk students.`;
+  }
+
+  // (g) Smart India Hackathon & Landslide Sentinel AI
+  if (/(?:smart india hackathon|sih 26001|sih hackathon|landslide sentinel)/i.test(q)) {
+    return `For **Smart India Hackathon (SIH 26001)**, you researched and developed **Landslide Sentinel AI** — an early-warning risk monitoring solution built with Python Flask and SVM/Naive Bayes with 85.71% validation accuracy. Deployed on [GitHub Pages](https://mahalakshmi-kommaranahalli.github.io/Landslide-Sentinel-AI/).`;
+  }
+
+  // (h) GitHub Profile & Badges
+  if (/(?:how many repos|my github|github profile|pull shark|yolo badge|github badges)/i.test(q)) {
+    return `You maintain **38 public repositories** on GitHub under [@mahalakshmi-kommaranahalli](https://github.com/mahalakshmi-kommaranahalli) and have earned the **Pull Shark** and **YOLO** achievement badges.`;
+  }
+
+  // (i) Technical Skills & Tech Stack
+  if (/(?:what are my skills|my skills|my tech stack|technologies i know|my programming languages)/i.test(q)) {
+    return `Here is your verified technical skillset:\n` +
+      `- **Programming Languages**: C, Python, Java, JavaScript\n` +
+      `- **Frontend**: HTML5, CSS3, Modern JavaScript (ES6+), React, Vite\n` +
+      `- **Backend & APIs**: Python Flask, PHP, RESTful APIs\n` +
+      `- **Databases**: MySQL, PostgreSQL, SQLite, SQL\n` +
+      `- **AI / Machine Learning**: Scikit-learn, Naive Bayes, Support Vector Machines (SVM), Predictive Analytics\n` +
+      `- **IoT & Embedded**: ESP32, LoRa wireless RF transceivers, Arduino, OLED displays, sensors\n` +
+      `- **Cloud & Deployment**: GitHub Pages, Netlify, Vercel, Docker basics`;
+  }
+
+  // (j) Featured Projects
+  if (/(?:what projects have i built|what did i build|my projects|list my projects|show my projects|portfolio projects)/i.test(q)) {
+    return `You have built 22 diverse technical projects across web applications, AI, interactive games, and IoT, including:\n\n` +
+      `1. **ARROWHEAD — Infinite Logic**: Minimalist JavaScript infinite logic game ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/arrowhead/))\n` +
+      `2. **Memory Master Game — Memoryverse**: 20-level interactive tech memory challenge ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/memory-master-game/))\n` +
+      `3. **Landslide Sentinel AI (SIH 26001)**: Environmental risk forecasting ML model ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/Landslide-Sentinel-AI/))\n` +
+      `4. **Student Risk Identification System**: CIT Hackathon Top 8 solution among 178 teams\n` +
+      `5. **CampusHub ERP**: College management & student services platform ([Live Demo](https://campus-hub-erp-xi.vercel.app/))\n` +
+      `6. **MJ Hospital**: Digital healthcare records and clinic coordination ([Live Demo](https://mj-hospital.vercel.app/))\n` +
+      `7. **LoRa-Based Smart Irrigation**: ESP32 & LoRa long-range telemetry for automated precision farming\n` +
+      `8. **VTU 3rd Sem Study Hub**: Academic portal for VTU CSE students ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/VTU-2025-3rd-Sem-Notes/))\n` +
+      `9. **Code Blaster.exe**: Teachers' Day 2026 digital tribute to mentor Pruthviraj Mundargi`;
+  }
+
+  // (k) Career Goals & Ambition
+  if (/(?:what is my goal|what are my goals|my ambition|my dream|career ambition|what do i want to become)/i.test(q)) {
+    return `Your career ambition is to become a high-impact **Software Development Engineer and AI Innovator**, building scalable, accessible, and meaningful real-world digital solutions across Full-Stack Web Development, AI/ML, and IoT.`;
+  }
+
+  // (l) Developer Philosophy & Statement
+  if (/(?:my philosophy|developer statement|my motto|what do i believe)/i.test(q)) {
+    return `Your core developer philosophy is:\n\n` +
+      `> *"I believe in learning by building. Every project gives me an opportunity to explore something new, solve a problem, improve my skills, and turn an idea into reality. My engineering journey is about more than completing a degree. It is about curiosity, experimentation, teamwork, mentorship, and continuous improvement. KEEP LEARNING. KEEP BUILDING. KEEP GROWING."*`;
+  }
+
+  // (m) Location & Geographic Background
+  if (/(?:where do i live|my location|my city|where am i from)/i.test(q)) {
+    return `You are based in **Davanagere, Karnataka, India**.`;
+  }
+
+  // (n) Social Links & Online Portfolios
+  if (/(?:my portfolio|portfolio link|portfolio website)/i.test(q)) {
+    return `Your personal portfolio is live at [https://mahalakshmi-kommaranahalli.github.io/](https://mahalakshmi-kommaranahalli.github.io/).`;
+  }
+  if (/(?:my linkedin|linkedin profile)/i.test(q)) {
+    return `Your LinkedIn profile is [https://www.linkedin.com/in/mahalakshmi-kommaranahalli-06aba0341/](https://www.linkedin.com/in/mahalakshmi-kommaranahalli-06aba0341/).`;
+  }
+  if (/(?:my instagram|instagram handle)/i.test(q)) {
+    return `Your Instagram profile is [@its_me_mahaaaa__](https://www.instagram.com/its_me_mahaaaa__/).`;
+  }
+
+  // --- 6. Explicit Request for Complete Memory Archive Dump ---
+  const isExplicitMemoryDump = /(?:what do you remember about me|what do you know about me|tell me everything you know about me|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory)/i.test(q);
+  if (isExplicitMemoryDump) {
     if (activeMemories.length === 0) {
       return `I don't have any memories saved about you yet${nameSalutation}!\n\n` +
-        `I'd love to get to know you. You can tell me:\n` +
-        `- Where you live or where you're from\n` +
-        `- What you do for work or what you study\n` +
-        `- Things you love doing or hobbies\n` +
-        `- Big goals or milestones you're aiming for\n\n` +
-        `Whatever you share, I'll naturally remember so our conversations feel truly personal!`;
+        `Tell me about your college, projects, goals, or hobbies, and I'll preserve them in your memory bank!`;
     }
 
     const grouped = {};
@@ -932,102 +1089,37 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
       summaryText += '\n';
     }
 
-    const hadChanges = allMemories.some(m => m.previousValue);
-    if (hadChanges) {
-      summaryText += `*(You also have past versions saved! Ask me "What changed?" anytime to see your life evolution.)*\n\n`;
+    return summaryText + `Is there anything you'd like to update or add?`;
+  }
+
+  // --- 7. History of Changes / Evolution ---
+  const isAskingAboutChanges = /(?:what changed|what did i change|show me changes|did anything change|what were my old|what was my old|what did i use to|history of changes|how did things change|what changed in my life)/i.test(q);
+  if (isAskingAboutChanges) {
+    const evolvedMemories = allMemories.filter(m => m.previousValue || m.status === 'superseded');
+    if (evolvedMemories.length === 0) {
+      return `None of your memories have been updated or changed yet${nameSalutation}! Everything I currently have saved reflects your original active information.\n\n` +
+        `Whenever anything in your life or goals changes, just let me know and I'll record both the past and the new update!`;
     }
 
-    summaryText += `Is there anything you'd like to update or add?`;
-    return summaryText;
+    const changeBullets = evolvedMemories.map(m => {
+      if (m.previousValue) {
+        return `- **${m.category.toUpperCase()}**: Previously: *"${cleanMemContent(m.previousValue)}"*, updated to: **"${cleanMemContent(m.content)}"** *(Updated: ${formatDateOnly(m.updatedAt)})*.`;
+      }
+      return `- **${m.category.toUpperCase()}**: *"${cleanMemContent(m.content)}"*.`;
+    }).join('\n\n');
+
+    return `Here is how your information has evolved over time${nameSalutation}:\n\n${changeBullets}`;
   }
 
-  // 5. Greetings & Combined Greetings (e.g. "Hi how are you", "Hello there", "Hey what's up")
-  if (/(?:^|\b)(hi|hello|hey|yo|good morning|good evening|good afternoon|howdy|sup|greetings)\b/i.test(q)) {
-    if (/(?:how are you|how're you|how is it going|how are you doing|what's up|whats up)/i.test(q)) {
-      return `Hey${nameSalutation}! 😊 I'm doing really well, thank you so much for asking! It's great to hear from you. How has your day been going? What's on your mind?`;
-    }
-    const memNotice = activeMemories.length > 0 ? `I've got your memories ready.` : `Ready whenever you want to chat or share updates.`;
-    return `Hey${nameSalutation}! 😊 Great to connect with you. ${memNotice} How are you doing today?`;
+  // --- 8. Grounded Memories Query (when personal query matched specific memory records) ---
+  if (groundedMemories && groundedMemories.length > 0 && isPersonalQuery(userText)) {
+    const memoryHighlights = groundedMemories.map(m => `- ${cleanMemContent(m.content)}`).join('\n\n');
+    return `Based on your recorded memory records${nameSalutation}:\n\n` +
+      `${memoryHighlights}\n\n` +
+      `Is there anything specific you would like to explore further?`;
   }
 
-  // 6. How are you / check-in
-  if (/(?:how are you|how're you|how is it going|how are you doing)/i.test(q)) {
-    return `I'm doing great${nameSalutation}, thank you for asking! I always enjoy our conversations. How about yourself—how are you feeling today?`;
-  }
-
-  // 7. Identity & System capabilities
-  if (/(?:who are you|what are you|what can you do|are you an ai|are you real|are you human)/i.test(q)) {
-    return `I'm **Life Memory AI** — your personal cognitive assistant and life companion! 🧠\n\n` +
-      `Here is how I work with you:\n` +
-      `- **I Chat Naturally**: We can talk about ideas, coding, daily thoughts, feelings, or life advice.\n` +
-      `- **I Remember What Matters**: As we talk, I capture your career, goals, projects, preferences, and milestones.\n` +
-      `- **I Track Changes Over Time**: When you change jobs, move to a new city, or shift goals, I recognize that your life evolved and remember both the old and the new!\n` +
-      `- **Zero Hallucination**: I never make up facts about your personal life.\n\n` +
-      `What would you like to talk about today?`;
-  }
-
-  // 8. Emotional Expressions & Empathy
-  if (/(?:i am feeling|i feel|feeling)\s+(sad|down|depressed|unhappy|lonely|blue)/i.test(q) || /(?:bad day|terrible day|rough day|awful day|worst day)/i.test(q)) {
-    return `I'm really sorry you're feeling that way${nameSalutation}. Rough days can be really heavy to carry alone. If you want to talk about what happened or just vent, I'm right here with you. No judgment at all. What's been going on?`;
-  }
-
-  if (/(?:stressed|anxious|overwhelmed|too much work|burnt out|exhausted|tired)/i.test(q)) {
-    return `Take a gentle breath${nameSalutation}. It sounds like a lot is weighing on you right now. When everything feels like too much, remember you only have to tackle one tiny piece at a time. Do you want to break down what's stressing you, or would you rather take your mind off it for a bit?`;
-  }
-
-  if (/(?:happy|excited|great day|amazing day|wonderful|celebrating|thrilled|proud)/i.test(q)) {
-    return `That's incredible to hear! 🎉 Love seeing you in high spirits${nameSalutation}. What's the exciting news or the best part of your day? Tell me all about it!`;
-  }
-
-  if (/(?:i am bored|i'm bored|so bored|nothing to do)/i.test(q)) {
-    return `Boredom is just your brain asking for a spark! Here are 3 fun things we could do right now:\n` +
-      `1. **Brainstorm**: We could plan a cool side project or dream trip.\n` +
-      `2. **Learn**: Pick any topic—quantum physics, history of coffee, or game design—and I'll give you a fascinating 2-minute breakdown.\n` +
-      `3. **Quiz or Joke**: I can tell you a funny riddle or programmer joke.\n\n` +
-      `Which one sounds fun?`;
-  }
-
-  // 9. Humor & Fun
-  if (/(?:tell me a joke|make me laugh|say something funny|funny joke)/i.test(q)) {
-    const jokes = [
-      `Why do programmers prefer dark mode?\n\nBecause light attracts bugs! 🐛`,
-      `There are only 10 types of people in the world:\nThose who understand binary, and those who don't!`,
-      `A SQL query walks into a bar, walks up to two tables and asks: *"Can I join you?"* 🍺`,
-      `Why was the JavaScript developer sad?\nBecause they didn't know how to 'null' their feelings!`,
-      `Why did the neural network go to school?\nBecause it wanted to improve its weights and biases!`
-    ];
-    return jokes[Math.floor(Math.random() * jokes.length)];
-  }
-
-  if (/(?:tell me a fact|interesting fact|fun fact|trivia)/i.test(q)) {
-    const facts = [
-      `Did you know? The human brain has roughly 86 billion neurons, each forming thousands of synaptic connections. That gives your biological memory a theoretical storage capacity of around 2.5 petabytes!`,
-      `Fun fact: Honey never spoils! Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.`,
-      `Space fact: A day on Venus is longer than a year on Venus! It takes Venus 243 Earth days to rotate once on its axis, but only 225 Earth days to orbit the Sun.`
-    ];
-    return `Here's a fascinating fact for you:\n\n${facts[Math.floor(Math.random() * facts.length)]}\n\nWhat kind of topics do you find most interesting?`;
-  }
-
-  // 10. Thank you & Politeness
-  if (/(?:thank you|thanks|appreciate it|thx|ty)/i.test(q)) {
-    return `You're very welcome${nameSalutation}! It's always a pleasure chatting with you. Let me know whenever there's anything else you need!`;
-  }
-
-  // --- Common General Knowledge Queries (Direct & Factual) ---
-  if (/\bcapital of france\b/i.test(q) || (/\bcapital\b/i.test(q) && /\bfrance\b/i.test(q))) {
-    return `The capital of France is **Paris**.`;
-  }
-  if (/\bcapital of india\b/i.test(q) || (/\bcapital\b/i.test(q) && /\bindia\b/i.test(q))) {
-    return `The capital of India is **New Delhi**.`;
-  }
-  if (/\bphotosynthesis\b/i.test(q)) {
-    return `**Photosynthesis** is the biological process by which green plants and algae convert light energy into chemical energy stored in glucose, releasing oxygen as a byproduct.`;
-  }
-  if (/\bspeed of light\b/i.test(q)) {
-    return `The speed of light in a vacuum is approximately **299,792,458 meters per second** (about **300,000 km/s** or **186,282 miles/s**).`;
-  }
-
-  // --- Precise Math Calculator (e.g. "What is 25 * 4?", "12 + 15", "100 / 5") ---
+  // --- 9. Precise Math Calculator (Zero Memory Contamination) ---
   const mathMatch = q.match(/(?:^|\bwhat is\s+)?(\d+(?:\.\d+)?)\s*([\+\-\*\/xX])\s*(\d+(?:\.\d+)?)\s*\??$/);
   if (mathMatch) {
     const a = parseFloat(mathMatch[1]);
@@ -1041,123 +1133,83 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
     return `${a} ${op === 'x' ? '*' : op} ${b} = **${ans}**`;
   }
 
-  // 11. Technical, Coding & Science Questions (with word boundaries)
-  if (/\b(python|javascript|coding|react|sql|database|api|html|css|docker|git|bug|algorithm|async)\b/i.test(q)) {
-    return `I'd love to help you with that technical topic${nameSalutation}!\n\n` +
-      `When approaching **${extractTopic(userText)}**, a great strategy is breaking it down into fundamental components:\n` +
-      `1. **Core Concept**: Clarify the specific input, processing logic, and expected output.\n` +
-      `2. **Implementation**: Build a clean, modular prototype first before optimizing.\n` +
-      `3. **Edge Cases & Testing**: Verify boundary conditions and error handling.\n\n` +
-      `Do you have a specific snippet of code or architecture decision you're working on right now? Paste it here and we can walk through it together!`;
-  }
-
-  // 12. Productivity, Study & Career Advice
-  if (/(?:advice|career|study|how to learn|focus|productivity|routine|time management|interview)/i.test(q)) {
-    return `Here are some proven strategies that can make a big difference${nameSalutation}:\n\n` +
-      `- **Time-Boxing (Pomodoro)**: 25 to 50 minutes of pure deep focus without phone notifications, followed by a true 5-minute break.\n` +
-      `- **The 2-Minute Rule**: If a task takes less than 2 minutes, do it immediately rather than putting it on a to-do list.\n` +
-      `- **Iterative Progress**: Consistency always beats intensity. Doing 30 minutes every day compounds much faster than an 8-hour sprint once a week.\n\n` +
-      `Is this for your current work or a new skill you're learning? Tell me a bit more about what you're working toward!`;
-  }
-
-  // 13. Lifestyle, Food & Decisions
-  if (/(?:what should i eat|dinner|lunch|breakfast|food|recipe|restaurant)/i.test(q)) {
-    return `Here are a few quick, satisfying ideas depending on what you're in the mood for:\n\n` +
-      `- **Light & Quick**: A fresh warm bowl of pasta with garlic, olive oil, and parmesan, or a crisp veggie stir-fry.\n` +
-      `- **Comfort Food**: A hearty grain bowl with roasted veggies, protein of your choice, and a savory tahini or soy-ginger sauce.\n` +
-      `- **Cozy & Easy**: Grilled sourdough sandwich with a hot bowl of tomato or lentil soup.\n\n` +
-      `What kind of food do you usually enjoy most? I can remember your favorite cuisines in your memory bank!`;
-  }
-
-  // 14. If grounded memories are available, answer directly, specifically, and accurately
-  if (groundedMemories && groundedMemories.length > 0) {
-    if (q.includes('cgpa') || q.includes('grade') || q.includes('marks')) {
-      return `Your second-year academic performance is **8.6 CGPA** in Bachelor of Engineering (Computer Science and Engineering) at **Jain Institute of Technology, Davanagere**.`;
-    }
-    if (q.includes('college') || q.includes('study') || q.includes('engineering') || q.includes('degree') || q.includes('branch')) {
-      return `You are currently a **3rd Year Computer Science and Engineering (CSE)** student at **Jain Institute of Technology, Davanagere** (VTU affiliated, 2024 – Present) with an **8.6 CGPA**.`;
-    }
-    if (q.includes('school') || q.includes('pu') || q.includes('puc') || q.includes('10th') || q.includes('12th') || q.includes('gurudeva')) {
-      return `Prior to engineering, you completed your 10th standard at **Sri Gurudeva High School** and your 12th standard (PUC) at **Sir M V PU College**.`;
-    }
-    if (q.includes('cit') || (q.includes('hackathon') && !q.includes('sih'))) {
-      return `At **CIT Hackathon 2026**, you achieved a standout **Top 8 ranking among 178 participating teams** with your project **'Student Risk Identification and Educator Support System'**, which leverages academic and participation indicators for early student support.`;
-    }
-    if (q.includes('sih') || q.includes('smart india') || q.includes('26001')) {
-      return `For **Smart India Hackathon (SIH 26001)**, you researched and developed **Landslide Sentinel AI** — an early-warning risk monitoring solution built with Python Flask and SVM/Naive Bayes with 85.71% validation accuracy.`;
-    }
-    if (q.includes('mentor') || q.includes('pruthviraj') || q.includes('mundargi')) {
-      return `Your mentor is **Pruthviraj Mundargi**. Key milestones in your journey together include:\n\n` +
-        `- **15 September 2025**: First class at JITD and first meeting\n` +
-        `- **19 September 2025**: Code Blaster college event that sparked your drive to build independently\n` +
-        `- **29 April 2026**: 'First Tea' memorable discussion on engineering mindset\n` +
-        `- **05 September 2026**: Launch of your digital tribute **Code Blaster.exe – Teachers' Day 2026**`;
-    }
-    if (q.includes('arrowhead')) {
-      return `**ARROWHEAD — Infinite Logic** is a minimalist JavaScript infinite logic puzzle game where players solve arrow patterns and test observation speed, accuracy, and sequence navigation. It features player dashboards, high scores, accuracy statistics, and timers, and is deployed on [GitHub Pages](https://mahalakshmi-kommaranahalli.github.io/arrowhead/).`;
-    }
-    if (q.includes('memory master') || q.includes('memoryverse')) {
-      return `**Memory Master Game (Memoryverse)** is an interactive educational memory game featuring 20 levels covering Web Tech, AI, and Cloud Computing with score tracking and achievements on [GitHub Pages](https://mahalakshmi-kommaranahalli.github.io/memory-master-game/).`;
-    }
-    if (q.includes('landslide') || q.includes('sentinel')) {
-      return `**Landslide Sentinel AI (SIH 26001)** is a machine learning early-warning solution analyzing environmental indicators to forecast landslide risks, built with Python Flask and SVM/Naive Bayes models. Deployed on [GitHub Pages](https://mahalakshmi-kommaranahalli.github.io/Landslide-Sentinel-AI/).`;
-    }
-    if (q.includes('lora') || q.includes('irrigation')) {
-      return `**LoRa-Based Smart Irrigation** is an IoT embedded engineering project you developed using ESP32 microcontrollers, LoRa wireless RF transceivers, OLED displays, and soil moisture sensor nodes for automated precision agriculture.`;
-    }
-    if (q.includes('campushub')) {
-      return `**CampusHub ERP** is a comprehensive college management platform with student/faculty directories, attendance, fees, grading, and leave workflows built with React, Flask, and MySQL on Vercel: [https://campus-hub-erp-xi.vercel.app/](https://campus-hub-erp-xi.vercel.app/).`;
-    }
-    if (q.includes('hospital') || q.includes('mj hospital')) {
-      return `**MJ Hospital** is a hospital management web application designed for digital patient records, clinic operations, and online healthcare coordination deployed on Vercel: [https://mj-hospital.vercel.app/](https://mj-hospital.vercel.app/).`;
-    }
-    if (q.includes('github') || q.includes('repos') || q.includes('pull shark') || q.includes('yolo')) {
-      return `You maintain **38 public repositories** on GitHub ([@mahalakshmi-kommaranahalli](https://github.com/mahalakshmi-kommaranahalli)) and have earned the **Pull Shark** and **YOLO** achievement badges.`;
-    }
-    if (q.includes('philosophy') || q.includes('statement') || q.includes('motto')) {
-      return `Your core developer philosophy is:\n\n> *"I believe in learning by building. Every project gives me an opportunity to explore something new, solve a problem, improve my skills, and turn an idea into reality. KEEP LEARNING. KEEP BUILDING. KEEP GROWING."*`;
-    }
-    if (q.includes('skills') || q.includes('stack') || q.includes('technologies')) {
-      return `Your technical skillset includes:\n` +
-        `- **Languages**: C, Python, Java, JavaScript\n` +
-        `- **Frontend**: HTML5, CSS3, Modern JavaScript, React, Vite\n` +
-        `- **Backend**: Python Flask, PHP, REST APIs\n` +
-        `- **Databases**: MySQL, SQLite, PostgreSQL, SQL\n` +
-        `- **AI/ML**: Scikit-learn, Naive Bayes, SVM, predictive analytics\n` +
-        `- **IoT/Hardware**: ESP32, LoRa, Arduino, OLED, sensors\n` +
-        `- **Deployment**: GitHub Pages, Netlify, Vercel, Railway, Docker basics`;
-    }
-    if (q.includes('projects') || q.includes('portfolio') || q.includes('built')) {
-      return `You have created 22 diverse technical projects across web development, AI, games, and IoT, including **ARROWHEAD**, **Memory Master**, **Landslide Sentinel AI**, **Student Risk Identification System (CIT Top 8)**, **CampusHub ERP**, **MJ Hospital**, **VTU Study Hubs**, and **LoRa Smart Irrigation**.`;
-    }
-    if (q.includes('goals') || q.includes('future') || q.includes('ambition')) {
-      return `Your future goals are to: (1) Advance expertise in state-of-the-art AI & ML architectures; (2) Master full-stack system design and cloud deployments with Docker; (3) Engineer production mobile apps including the MahaAI voice assistant; (4) Expand IoT solutions; (5) Build impactful open-source tools that empower students and education.`;
-    }
-
-    const memoryHighlights = groundedMemories.map(m => `- ${cleanMemContent(m.content)}`).join('\n\n');
-    return `Based on your recorded memory records${nameSalutation}:\n\n` +
-      `${memoryHighlights}\n\n` +
-      `Is there anything specific you would like to explore further?`;
-  }
-
-  // 15. General Knowledge & Universal Answering (Zero Memory Contamination)
-  if (q.includes('capital of france') || (q.includes('capital') && q.includes('france'))) {
+  // --- 10. General Knowledge & Facts (Zero Memory Contamination) ---
+  if (/\bcapital of france\b/i.test(q) || (/\bcapital\b/i.test(q) && /\bfrance\b/i.test(q))) {
     return `The capital of France is **Paris**.`;
   }
-  if (q.includes('photosynthesis')) {
-    return `**Photosynthesis** is the biological process by which green plants and other organisms transform light energy into chemical energy, synthesizing foods from carbon dioxide and water while generating oxygen as a byproduct.`;
+  if (/\bcapital of india\b/i.test(q) || (/\bcapital\b/i.test(q) && /\bindia\b/i.test(q))) {
+    return `The capital of India is **New Delhi**.`;
   }
-  if (q.includes('einstein') || q.includes('albert einstein')) {
-    return `**Albert Einstein** (1879–1955) was a Nobel Prize-winning theoretical physicist famous for formulating the theory of relativity ($E = mc^2$) and fundamentally transforming our understanding of space, time, gravity, and the universe.`;
+  if (/\bcapital of japan\b/i.test(q) || (/\bcapital\b/i.test(q) && /\bjapan\b/i.test(q))) {
+    return `The capital of Japan is **Tokyo**.`;
   }
-  if (q.includes('recursion')) {
-    return `**Recursion** in computer science is a method of solving computational problems where a function calls itself repeatedly to solve smaller sub-problems until reaching a specified **base case**.`;
+  if (/\bcapital of germany\b/i.test(q) || (/\bcapital\b/i.test(q) && /\bgermany\b/i.test(q))) {
+    return `The capital of Germany is **Berlin**.`;
+  }
+  if (/\bcapital of (?:the )?(?:usa|united states|us)\b/i.test(q)) {
+    return `The capital of the United States is **Washington, D.C.**`;
+  }
+  if (/\bcapital of australia\b/i.test(q) || (/\bcapital\b/i.test(q) && /\baustralia\b/i.test(q))) {
+    return `The capital of Australia is **Canberra**.`;
+  }
+  if (/\bcapital of (?:the )?(?:uk|united kingdom|england)\b/i.test(q)) {
+    return `The capital of the United Kingdom is **London**.`;
+  }
+  if (/\bphotosynthesis\b/i.test(q)) {
+    return `**Photosynthesis** is the biological process by which green plants and algae convert light energy into chemical energy stored in glucose, synthesizing foods from carbon dioxide and water while releasing oxygen as a byproduct.`;
+  }
+  if (/\bspeed of light\b/i.test(q)) {
+    return `The speed of light in a vacuum is approximately **299,792,458 meters per second** (about **300,000 km/s** or **186,282 miles/s**).`;
+  }
+  if (/\bgravity\b/i.test(q) && !isPersonalQuery(q)) {
+    return `**Gravity** is a fundamental interaction in physics that causes mutual attraction between all things that have mass or energy, described by Newton's law of universal gravitation and Einstein's general theory of relativity.`;
+  }
+  if (/\brecursion\b/i.test(q)) {
+    return `**Recursion** in computer science is a method where a function calls itself to solve smaller instances of the same problem until reaching a specified **base case** that stops the recursion.`;
+  }
+  if (/\bbinary search\b/i.test(q)) {
+    return `**Binary Search** is an efficient searching algorithm for sorted arrays with a time complexity of **O(log n)** that repeatedly divides the search interval in half.`;
   }
 
-  // 16. Intelligent General Reflection
+  // --- 11. Technical, Coding & Science Discussion ---
+  if (/\b(python|javascript|coding|react|sql|database|api|html|css|docker|git|bug|algorithm|async)\b/i.test(q) && !isPersonalQuery(q)) {
+    const topic = extractTopic(userText);
+    return `Here are the core principles for **${topic}**:\n\n` +
+      `1. **Core Concept**: Break down the specific problem, data structures, and edge cases.\n` +
+      `2. **Implementation**: Start with clean, idiomatic code before optimizing for performance.\n` +
+      `3. **Testing & Verification**: Validate against edge cases, null checks, and error conditions.\n\n` +
+      `What specific problem or code snippet are you working on? Paste it here and we can solve it together!`;
+  }
+
+  // --- 12. Emotional Support & Empathy ---
+  if (/(?:i am feeling|i feel|feeling)\s+(sad|down|depressed|unhappy|lonely|blue)/i.test(q) || /(?:bad day|terrible day|rough day|awful day|worst day)/i.test(q)) {
+    return `I'm really sorry you're feeling that way${nameSalutation}. Rough days can feel heavy to carry alone. If you want to talk through what happened or just vent, I'm right here with you. What's been going on?`;
+  }
+  if (/(?:stressed|anxious|overwhelmed|too much work|burnt out|exhausted|tired)/i.test(q)) {
+    return `Take a gentle breath${nameSalutation}. When everything feels like too much, remember you only have to tackle one small step at a time. Do you want to break down what's stressing you, or take your mind off it for a bit?`;
+  }
+  if (/(?:happy|excited|great day|amazing day|wonderful|celebrating|thrilled|proud)/i.test(q)) {
+    return `That's incredible to hear! 🎉 Love seeing you in high spirits${nameSalutation}. What's the exciting news or the best part of your day? Tell me all about it!`;
+  }
+
+  // --- 13. System Identity ---
+  if (/(?:who are you|what are you|what can you do|are you an ai|are you real|are you human)/i.test(q)) {
+    return `I'm **Life Memory AI** — your personal cognitive assistant and lifelong memory companion! 🧠\n\n` +
+      `- **I Remember What Matters**: As we talk, I maintain your technical achievements, projects, education, and career aspirations.\n` +
+      `- **I Track Changes Over Time**: When your goals or projects evolve, I preserve both your history and your new updates.\n` +
+      `- **Zero Memory Contamination**: When you ask general questions, I answer directly without mixing in personal memories.\n\n` +
+      `What would you like to explore today?`;
+  }
+
+  // --- 14. Politeness ---
+  if (/(?:thank you|thanks|appreciate it|thx|ty)\b/i.test(q)) {
+    return `You're very welcome${nameSalutation}! Always happy to help. Let me know whenever you'd like to explore anything else!`;
+  }
+
+  // --- 15. Clean General Knowledge Reflection (ZERO Personal Memory Injected) ---
   const cleanSubject = extractTopic(userText);
-  return `That's a great question${nameSalutation}! \n\n` +
-    `Regarding **${cleanSubject}**, the key is breaking down the objective clearly and looking at both practical applications and core principles.\n\n` +
+  return `That's an interesting question${nameSalutation}!\n\n` +
+    `Regarding **${cleanSubject}**, the best approach depends on your specific objective and context.\n\n` +
     `Could you share a bit more detail about what you'd like to dive into?`;
 }
 
