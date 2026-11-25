@@ -24,12 +24,17 @@ function isPersonalQuery(text) {
   if (!lower) return false;
 
   // Explicit personal identity, records & profile inquiry
-  if (/(?:what is my|what's my|where do i|where i|where did i|where am i|who am i|when is my|when was i|how old am i|about me|about myself|know about me|remember about me|my memory|my memories|tell me about me|tell me about myself|what you know|what do you know|show my|tell my|summarize my|what did i)\b/i.test(lower)) {
+  if (/(?:what is my|what's my|where do i|where i|where did i|where am i|who am i|when is my|when was i|how old am i|about me|about myself|know about me|remember about me|my memory|my memories|tell me about me|tell me about myself|what you know|what do you know|show my|tell my|summarize my|what did i|all details|give all details|give details|full details|complete details)\b/i.test(lower)) {
     return true;
   }
 
   // Any possessive personal query ("my brother", "my birthday", "my phone", "my cgpa", "my dog", etc.)
   if (/\bmy\s+[a-z0-9_-]+\b/i.test(lower)) {
+    return true;
+  }
+
+  // Social & portfolio platforms (including common typos like linkdin)
+  if (/\b(instagram|insta|linkedin|linkdin|linked\s*in|github|portfolio|website)\b/i.test(lower)) {
     return true;
   }
 
@@ -1061,18 +1066,18 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
   }
 
   // (n) Social Links & Online Portfolios
-  if (/(?:my portfolio|portfolio link|portfolio website)/i.test(q)) {
+  if (/(?:portfolio|website)/i.test(q)) {
     return `Your personal portfolio is live at [https://mahalakshmi-kommaranahalli.github.io/](https://mahalakshmi-kommaranahalli.github.io/).`;
   }
-  if (/(?:my linkedin|linkedin profile)/i.test(q)) {
+  if (/(?:linkedin|linkdin|linked\s*in)/i.test(q)) {
     return `Your LinkedIn profile is [https://www.linkedin.com/in/mahalakshmi-kommaranahalli-06aba0341/](https://www.linkedin.com/in/mahalakshmi-kommaranahalli-06aba0341/).`;
   }
-  if (/(?:my instagram|instagram handle)/i.test(q)) {
+  if (/(?:instagram|insta)/i.test(q)) {
     return `Your Instagram profile is [@its_me_mahaaaa__](https://www.instagram.com/its_me_mahaaaa__/).`;
   }
 
-  // --- 6. Request for Profile Overview / Complete Memory Archive ("tell me about mahalakshmi", "tell me about me", "who is mahalakshmi", etc.) ---
-  const isProfileOverview = /(?:tell me about (?:me|myself|mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|who is (?:mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|about (?:me|myself|mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|what you know about (?:me|mahalakshmi)|what do you know about (?:me|mahalakshmi)|what do you know|what do you remember about (?:me|mahalakshmi)|what do you remember|tell me everything you know|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory|my profile|tell me my profile)/i.test(q);
+  // --- 6. Request for Profile Overview / Complete Memory Archive ("give all details", "tell me about mahalakshmi", "tell me about me", etc.) ---
+  const isProfileOverview = /(?:give all details|all details|full details|complete details|give details|all info|give all info|tell me about (?:me|myself|mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|who is (?:mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|about (?:me|myself|mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|what you know about (?:me|mahalakshmi)|what do you know about (?:me|mahalakshmi)|what do you know|what do you remember about (?:me|mahalakshmi)|what do you remember|tell me everything you know|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory|my profile|tell me my profile)/i.test(q);
   if (isProfileOverview) {
     return `**K. Mahalakshmi** (professionally known as **Mahalakshmi Kommaranahalli**) is an accomplished Computer Science and Engineering student, full-stack web developer, and AI innovator based in **Davanagere, Karnataka, India**.\n\n` +
       `Here is a complete, verified overview of her profile and technical journey from memory:\n\n` +
