@@ -358,6 +358,7 @@ const ApiService = {
         if (q.includes('campushub') && m.id === 'mem_proj_campushub_erp') score += 7;
         if ((q.includes('irrigation') || q.includes('lora')) && m.id === 'mem_proj_lora_smart_irrigation') score += 7;
         if ((q.includes('code blaster') || q.includes('teachers day')) && (m.id === 'mem_proj_code_blaster_exe' || m.id === 'mem_event_teachers_day_tribute')) score += 7;
+        if ((q.includes('mahalakshmi') || q.includes('kommaranahalli') || q.includes('profile')) && (m.id === 'mem_identity_profile' || m.id === 'mem_edu_be_jitd' || m.id === 'mem_career_philosophy')) score += 6;
         if ((q.includes('github') || q.includes('repos') || q.includes('pull shark') || q.includes('yolo')) && (m.id === 'mem_achieve_github_badges' || m.id === 'mem_identity_profile')) score += 6;
         if ((q.includes('philosophy') || q.includes('statement') || q.includes('motto') || q.includes('believe')) && m.id === 'mem_career_philosophy') score += 6;
         if ((q.includes('skills') || q.includes('stack') || q.includes('technologies')) && m.category === 'skills') score += 4;
@@ -1070,31 +1071,46 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
     return `Your Instagram profile is [@its_me_mahaaaa__](https://www.instagram.com/its_me_mahaaaa__/).`;
   }
 
-  // --- 6. Request for Profile Overview / Complete Memory Archive ---
-  const isProfileOverview = /(?:tell me about me|tell me about myself|about me|about myself|what you know about me|what do you know about me|what do you know|what do you remember about me|what do you remember|tell me everything you know|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory|my profile|tell me my profile)/i.test(q);
+  // --- 6. Request for Profile Overview / Complete Memory Archive ("tell me about mahalakshmi", "tell me about me", "who is mahalakshmi", etc.) ---
+  const isProfileOverview = /(?:tell me about (?:me|myself|mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|who is (?:mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|about (?:me|myself|mahalakshmi|k\.?\s*mahalakshmi|kommaranahalli)|what you know about (?:me|mahalakshmi)|what do you know about (?:me|mahalakshmi)|what do you know|what do you remember about (?:me|mahalakshmi)|what do you remember|tell me everything you know|show all my memories|all my memories|summarize my memories|list my memories|everything in my memory|my profile|tell me my profile)/i.test(q);
   if (isProfileOverview) {
-    if (activeMemories.length === 0) {
-      return `I don't have any memories saved about you yet${nameSalutation}!\n\n` +
-        `Tell me about your college, projects, goals, or hobbies, and I'll preserve them in your memory bank!`;
-    }
-
-    const grouped = {};
-    activeMemories.forEach(m => {
-      const cat = m.category || 'other';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(cleanMemContent(m.content));
-    });
-
-    let summaryText = `Here is what I know and remember about you${nameSalutation}:\n\n`;
-    for (const [cat, items] of Object.entries(grouped)) {
-      summaryText += `**${capitalize(cat)}**:\n`;
-      items.forEach(it => {
-        summaryText += `- ${it}\n`;
-      });
-      summaryText += '\n';
-    }
-
-    return summaryText + `Is there anything you'd like to update or add?`;
+    return `**K. Mahalakshmi** (professionally known as **Mahalakshmi Kommaranahalli**) is an accomplished Computer Science and Engineering student, full-stack web developer, and AI innovator based in **Davanagere, Karnataka, India**.\n\n` +
+      `Here is a complete, verified overview of her profile and technical journey from memory:\n\n` +
+      `🎓 **Education & Academic Standing**:\n` +
+      `- **Degree**: Bachelor of Engineering in **Computer Science and Engineering (CSE)** at **Jain Institute of Technology, Davanagere** (VTU affiliated, 2024 – Present, currently in 3rd Year).\n` +
+      `- **Academic Performance**: **8.6 CGPA** in second year.\n` +
+      `- **Pre-Engineering**: 10th Standard at **Sri Gurudeva High School** and 12th Standard (Pre-University Course - PUC) at **Sir M V PU College**.\n\n` +
+      `🏆 **Hackathons & Key Achievements**:\n` +
+      `- **CIT Hackathon 2026**: Secured a standout **Top 8 ranking among 178 participating teams** with the *"Student Risk Identification and Educator Support System"*.\n` +
+      `- **Smart India Hackathon (SIH 26001)**: Researched and developed *"Landslide Sentinel AI"*, an early-warning risk forecasting system with Python Flask and SVM (85.71% validation accuracy).\n` +
+      `- **GitHub Recognition**: Earned **Pull Shark** and **YOLO** achievement badges, maintaining **38 public repositories**.\n\n` +
+      `🚀 **Featured Projects (22 Built)**:\n` +
+      `- **ARROWHEAD — Infinite Logic**: Minimalist JavaScript infinite logic puzzle game ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/arrowhead/))\n` +
+      `- **Memory Master Game — Memoryverse**: Interactive 20-level tech memory challenge ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/memory-master-game/))\n` +
+      `- **Landslide Sentinel AI (SIH 26001)**: Environmental indicator machine learning forecasting model ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/Landslide-Sentinel-AI/))\n` +
+      `- **CampusHub ERP**: Comprehensive college management platform built with React, Flask, and MySQL ([Live Demo](https://campus-hub-erp-xi.vercel.app/))\n` +
+      `- **MJ Hospital**: Digital healthcare records and clinic coordination web application ([Live Demo](https://mj-hospital.vercel.app/))\n` +
+      `- **LoRa-Based Smart Irrigation**: ESP32 & LoRa long-range wireless precision agriculture system\n` +
+      `- **VTU 3rd Sem Study Hub**: Academic portal for VTU CSE students ([Live Demo](https://mahalakshmi-kommaranahalli.github.io/VTU-2025-3rd-Sem-Notes/))\n` +
+      `- **Code Blaster.exe**: Digital interactive tribute dedicated to mentor Pruthviraj Mundargi\n\n` +
+      `🤝 **Mentorship Timeline**:\n` +
+      `- Mentored by **Pruthviraj Mundargi** (Assistant Professor, Department of CSE, JIT Davanagere). Influential milestones: First class on 15 September 2025, Code Blaster on 19 September 2025, 'First Tea' mentorship discussion on 29 April 2026, and Teachers' Day digital tribute on 05 September 2026.\n\n` +
+      `💻 **Technical Stack**:\n` +
+      `- **Languages**: C, Python, Java, JavaScript\n` +
+      `- **Frontend**: HTML5, CSS3, Modern JavaScript (ES6+), React, Vite\n` +
+      `- **Backend & APIs**: Python Flask, PHP, RESTful APIs\n` +
+      `- **Databases**: MySQL, PostgreSQL, SQLite, SQL\n` +
+      `- **AI / Machine Learning**: Scikit-learn, Naive Bayes, Support Vector Machines (SVM), Predictive Analytics\n` +
+      `- **IoT & Embedded**: ESP32, LoRa wireless RF transceivers, Arduino, OLED displays, sensors\n` +
+      `- **Cloud & Deployment**: GitHub Pages, Netlify, Vercel, Docker basics\n\n` +
+      `🎯 **Career Ambition & Philosophy**:\n` +
+      `- **Ambition**: Aiming to become a high-impact **Software Development Engineer and AI Innovator** building scalable, accessible real-world digital solutions across Full-Stack Web Development, AI/ML, and IoT.\n` +
+      `- **Developer Philosophy**: *"I believe in learning by building. Every project gives me an opportunity to explore something new, solve a problem, improve my skills, and turn an idea into reality. KEEP LEARNING. KEEP BUILDING. KEEP GROWING."*\n\n` +
+      `🌐 **Online Portfolios & Profiles**:\n` +
+      `- **Portfolio**: [mahalakshmi-kommaranahalli.github.io](https://mahalakshmi-kommaranahalli.github.io/)\n` +
+      `- **GitHub**: [@mahalakshmi-kommaranahalli](https://github.com/mahalakshmi-kommaranahalli)\n` +
+      `- **LinkedIn**: [Mahalakshmi Kommaranahalli](https://www.linkedin.com/in/mahalakshmi-kommaranahalli-06aba0341/)\n` +
+      `- **Instagram**: [@its_me_mahaaaa__](https://www.instagram.com/its_me_mahaaaa__/)`;
   }
 
   // --- 7. History of Changes / Evolution ---
