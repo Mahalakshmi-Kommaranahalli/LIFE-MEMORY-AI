@@ -331,7 +331,8 @@ const ApiService = {
       const relevantMatches = await this.searchMemories(userText);
       const groundedMemories = relevantMatches.map(m => m.memory);
 
-      // (c) Check for live Gemini API Key
+      // (c) AI Engine Pipeline (Supports ANY question):
+      // 1. Gemini Live API if user configured custom key
       const geminiKey = localStorage.getItem('lifememory_gemini_api_key') || (user.preferences && user.preferences.geminiKey);
       let assistantText = null;
 
@@ -339,13 +340,22 @@ const ApiService = {
         try {
           assistantText = await callGeminiLiveAPI(geminiKey, userText, user, store.memories, store);
         } catch (e) {
-          console.warn('Gemini API call failed, falling back to local cognitive engine:', e);
+          console.warn('Gemini API call failed, trying live LLM fallback:', e);
         }
       }
 
-      // If no live Gemini key or live call failed, use the ultra-natural local cognitive engine
+      // 2. Free Live LLM Engine (Answers ANY general, technical, math, coding or personal question)
       if (!assistantText) {
-        await simulateLatency(450);
+        try {
+          assistantText = await callFreeLiveLLM(userText, user, store.memories, store);
+        } catch (e) {
+          console.warn('Free live LLM call failed, falling back to local cognitive engine:', e);
+        }
+      }
+
+      // 3. If offline or network unavailable, use the enhanced local cognitive engine
+      if (!assistantText) {
+        await simulateLatency(300);
         assistantText = generateHumanLikeResponse(
           userText,
           user,
@@ -573,6 +583,69 @@ CONVERSATION RULES:
     } catch (e) {
       console.warn(`Gemini API call to ${model} failed:`, e);
     }
+  }
+  return null;
+}
+
+// =========================================================================
+// 🌐 FREE LIVE LLM ENGINE (Answers ANY question without needing API key)
+// =========================================================================
+
+async function callFreeLiveLLM(userText, user, memories, store) {
+  const activeMemories = (memories || []).filter(m => m.status === 'active');
+  const superseded = (memories || []).filter(m => m.previousValue || m.status === 'superseded');
+
+  const activePoints = activeMemories.length > 0 
+    ? activeMemories.map(m => `- [${m.category.toUpperCase()}]: ${m.content}`).join('\n') 
+    : 'No memories recorded yet.';
+
+  const changePoints = superseded.length > 0 
+    ? superseded.map(m => `- [${m.category.toUpperCase()}]: Previously "${m.previousValue || m.content}", updated to "${m.content}" on ${formatDateOnly(m.updatedAt || m.createdAt)}`).join('\n') 
+    : 'No changes recorded yet.';
+
+  const systemPrompt = `You are Life Memory AI, a brilliant, thoughtful, empathetic personal AI assistant and real human-like companion.
+You have comprehensive knowledge across all subjects: programming (C, Python, Java, JS, React, SQL, algorithms, debugging), science, math, history, writing, philosophy, productivity, and life advice.
+You can answer ANY question the user asks with deep clarity, actionable insight, and natural human conversational warmth.
+
+USER PROFILE:
+- Name: ${user.name || 'Friend'}
+- Email: ${user.email || ''}
+- Role: ${user.role || 'Member'}
+
+USER'S RECORDED PERSONAL MEMORIES & ACHIEVEMENTS:
+${activePoints}
+
+USER'S MEMORY EVOLUTIONS (CHANGES OVER TIME):
+${changePoints}
+
+INSTRUCTIONS:
+1. When asked ANY random question (programming, logic, trivia, general knowledge, advice, science, daily thoughts), answer thoroughly, accurately, and engagingly.
+2. When asked about the user's life, career, education, projects, achievements, hackathons, or memories, always ground your answers accurately in their recorded memories above.
+3. Keep the tone friendly, smart, concise, and helpful. Use clean GitHub-flavored markdown.`;
+
+  try {
+    const res = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userText }
+        ],
+        model: 'openai',
+        seed: Math.floor(Math.random() * 100000)
+      }),
+      signal: AbortSignal.timeout(9000)
+    });
+
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim().length > 0) {
+        return text.trim();
+      }
+    }
+  } catch (err) {
+    console.warn('Free live LLM call failed or timed out:', err);
   }
   return null;
 }
@@ -945,11 +1018,12 @@ function generateHumanLikeResponse(userText, user, groundedMemories, memoryAnaly
       `What kind of food do you usually enjoy most? I can remember your favorite cuisines in your memory bank!`;
   }
 
-  // 14. If grounded memories are available, weave them naturally into an answer
+  // 14. If grounded memories are available, answer directly from memory records
   if (groundedMemories && groundedMemories.length > 0) {
-    const memoryHighlights = groundedMemories.slice(0, 2).map(m => `*${cleanMemContent(m.content)}*`).join(' and ');
-    return `Connecting this to what I remember about you (${memoryHighlights}):\n\n` +
-      `That sounds like a meaningful topic${nameSalutation}! How would you like to take this forward? We can brainstorm ideas, outline concrete steps, or dive into any specific questions you have.`;
+    const memoryHighlights = groundedMemories.slice(0, 4).map(m => `> **[${m.category.toUpperCase()}]** ${cleanMemContent(m.content)}`).join('\n\n');
+    return `Based directly on your recorded memory bank${nameSalutation}:\n\n` +
+      `${memoryHighlights}\n\n` +
+      `Is there anything else you would like to know or update about this?`;
   }
 
   // 15. Intelligent, Dynamic Conversational Reflection (NEVER STATIC!)
